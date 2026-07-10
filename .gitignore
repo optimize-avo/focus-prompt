@@ -1,7 +1,8 @@
 # Dependencies
 node_modules/
-venv/
+.venv/
 __pycache__/
+*.egg-info/
 
 # Environment
 .env
@@ -19,3 +20,7 @@ Thumbs.db
 dist/
 build/
 *.pyc
+
+# Project state (generated per brand)
+fp-project.json
+fp-export.*

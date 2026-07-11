@@ -27,5 +27,5 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        # Requires PyPI trusted publisher configured for this repo
-        # See: https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/
+        with:
+          skip-existing: true

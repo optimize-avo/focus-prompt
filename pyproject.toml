@@ -1,6 +1,6 @@
 [project]
 name = "focus-prompt"
-version = "0.1.0"
+version = "0.1.1"
 description = "AI Brand Visibility Research Tool — Unbranded Prompt Discovery"
 requires-python = ">=3.11"
 dependencies = [

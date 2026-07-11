@@ -2,14 +2,15 @@
 
 AI Brand Visibility Research Tool — prediksi dan generate unbranded prompt yang bisa dipakai AI chatbot untuk menemukan dan mention brand kamu.
 
-## Setup
+## Setup (CLI)
 
 ```bash
 # 1. Install
 pip install -e .
 
-# 2. Set API key
-export OPENAI_API_KEY=sk-...
+# 2. Configure LLM provider
+cp .env.example .env
+# Edit .env — set FP_MODEL dan API key
 
 # 3. Init project
 fp init "Brand Name" \
@@ -19,6 +20,35 @@ fp init "Brand Name" \
   --competitors "Kompetitor1, Kompetitor2" \
   --mode unbranded \
   --lang id
+```
+
+`fp` otomatis load `.env` dari project root — tidak perlu `export`.
+
+## Setup (MCP Server)
+
+Tambahkan di `opencode.jsonc` (global atau project-level):
+
+```jsonc
+{
+  "mcp": {
+    "fp": {
+      "type": "local",
+      "command": ["fp-mcp"],
+      "env": {
+        "FP_MODEL": "gpt-4o-mini",
+        "OPENAI_API_KEY": "sk-..."
+      }
+    }
+  }
+}
+```
+
+Atau untuk provider lain:
+```jsonc
+"env": {
+  "FP_MODEL": "minimax/MiniMax-M2.1",
+  "MINIMAX_API_KEY": "your-key"
+}
 ```
 
 ## Pipeline
@@ -185,4 +215,5 @@ Export / Display
 ## Requirements
 
 - Python 3.11+
-- `OPENAI_API_KEY` (untuk LLM calls: discover, prompt-generate, score)
+- LLM API key (OpenAI, DeepSeek, MiniMax, Qwen, dll)
+- LiteLLM — supports 100+ providers via `FP_MODEL` env var

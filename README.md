@@ -4,7 +4,22 @@ AI Brand Visibility Research Tool — prediksi dan generate unbranded prompt yan
 
 ## Installation
 
-### From PyPI (recommended)
+### pipx (recommended for CLI + MCP)
+
+[pipx](https://pypa.github.io/pipx/) installs Python CLI tools in isolated environments — like `npx` for Python.
+
+```bash
+# Install pipx (one-time)
+brew install pipx
+pipx ensurepath
+
+# Install focus-prompt
+pipx install focus-prompt
+```
+
+Provides global `fp` (CLI) and `fp-mcp` (MCP server) commands.
+
+### From PyPI
 
 ```bash
 pip install focus-prompt
@@ -124,24 +139,84 @@ fp score
 fp export json
 ```
 
-### MCP Server (OpenCode)
+### MCP Server
 
-Tambahkan di `opencode.jsonc`:
+focus-prompt bisa dijalankan sebagai MCP server — terintegrasi langsung di AI editor seperti OpenCode, Claude Code, atau Cursor.
+
+#### OpenCode
+
+Tambahkan di `~/.config/opencode/opencode.jsonc`:
 
 ```jsonc
 {
   "mcp": {
-    "fp": {
+    "focus-prompt": {
       "type": "local",
       "command": ["fp-mcp"],
       "env": {
-        "FP_MODEL": "gpt-4o-mini",
-        "OPENAI_API_KEY": "sk-..."
+        "FP_MODEL": "minimax/MiniMax-M2.1",
+        "MINIMAX_API_KEY": "your-key-here"
       }
     }
   }
 }
 ```
+
+#### Claude Code
+
+Tambahkan di `.claude/settings.json` (project-level) atau `~/.claude.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "focus-prompt": {
+      "command": "fp-mcp",
+      "env": {
+        "FP_MODEL": "minimax/MiniMax-M2.1",
+        "MINIMAX_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+#### Cursor
+
+Tambahkan di `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "focus-prompt": {
+      "command": "fp-mcp",
+      "env": {
+        "FP_MODEL": "minimax/MiniMax-M2.1",
+        "MINIMAX_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+#### Ganti Provider
+
+Ganti `FP_MODEL` dan API key di `env` block:
+
+```jsonc
+// OpenAI
+"FP_MODEL": "gpt-4o-mini",
+"OPENAI_API_KEY": "sk-..."
+
+// DeepSeek
+"FP_MODEL": "deepseek/deepseek-chat",
+"DEEPSEEK_API_KEY": "sk-..."
+
+// Qwen
+"FP_MODEL": "dashscope/qwen-max",
+"DASHSCOPE_API_KEY": "sk-..."
+```
+
+Restart editor setelah ganti config.
 
 ## CLI Commands
 

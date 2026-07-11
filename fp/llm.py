@@ -8,6 +8,9 @@ Setup (one-time):
   2. Edit .env — set FP_MODEL and your provider's API key
   3. fp discover — done
 
+.env is loaded from your current working directory automatically.
+No export needed — just edit .env and run fp.
+
 Model selection priority:
   1. Explicit `model` argument (from --model flag or MCP param)
   2. FP_MODEL environment variable
@@ -23,16 +26,15 @@ Override any endpoint via provider-specific env vars:
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from dotenv import load_dotenv
 import litellm
 
 DEFAULT_MODEL = "gpt-4o-mini"
 
-# Auto-load .env from project root (no-op if file doesn't exist)
-_ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(_ENV_PATH)
+# Auto-load .env from current working directory (searches cwd upward)
+# Works for: package install, repo dev, MCP server — always finds .env in cwd
+load_dotenv()
 
 # Regional API base overrides — Singapore endpoints for Chinese providers.
 # Override any via env var (e.g. MINIMAX_API_BASE=https://custom.endpoint/v1).

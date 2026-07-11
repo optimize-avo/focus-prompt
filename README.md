@@ -2,17 +2,80 @@
 
 AI Brand Visibility Research Tool — prediksi dan generate unbranded prompt yang bisa dipakai AI chatbot untuk menemukan dan mention brand kamu.
 
-## Setup (CLI)
+## Installation
+
+### Option 1: From source (recommended)
 
 ```bash
-# 1. Install
+git clone https://github.com/your-org/focus-prompt.git
+cd focus-prompt
+pip install .
+```
+
+### Option 2: Development mode
+
+```bash
+git clone https://github.com/your-org/focus-prompt.git
+cd focus-prompt
 pip install -e .
+```
 
-# 2. Configure LLM provider
+## Configuration
+
+### 1. Buat file `.env`
+
+```bash
 cp .env.example .env
-# Edit .env — set FP_MODEL dan API key
+```
 
-# 3. Init project
+### 2. Pilih model dan set API key
+
+Edit `.env`:
+
+```bash
+# Step 1: Pilih model (uncomment salah satu)
+FP_MODEL=gpt-4o-mini
+# FP_MODEL=minimax/MiniMax-M2.1
+# FP_MODEL=deepseek/deepseek-chat
+# FP_MODEL=dashscope/qwen-max
+# FP_MODEL=xiaomi_mimo/MiMo-7B-RL
+
+# Step 2: Set API key untuk provider yang dipilih
+OPENAI_API_KEY=sk-your-key-here
+# MINIMAX_API_KEY=your-key-here
+# DEEPSEEK_API_KEY=sk-your-key-here
+# DASHSCOPE_API_KEY=your-key-here
+# XIAOMI_MIMO_API_KEY=your-key-here
+```
+
+### 3. Verifikasi
+
+```bash
+fp status
+```
+
+Kalau muncul warning `⚠ FP_MODEL='...' requires ..._API_KEY`, berarti API key belum diset.
+
+### Supported Providers
+
+| Provider | FP_MODEL value | API Key Env Var |
+|----------|---------------|-----------------|
+| OpenAI | `gpt-4o-mini` | `OPENAI_API_KEY` |
+| DeepSeek | `deepseek/deepseek-chat` | `DEEPSEEK_API_KEY` |
+| MiniMax (Singapore) | `minimax/MiniMax-M2.1` | `MINIMAX_API_KEY` |
+| Qwen/Alibaba | `dashscope/qwen-max` | `DASHSCOPE_API_KEY` |
+| Zhipu/GLM | `zai/glm-4.7` | `ZAI_API_KEY` |
+| Moonshot/Kimi | `moonshot/kimi-k2-thinking` | `MOONSHOT_API_KEY` |
+| ByteDance/Doubao | `volcengine/doubao-seed-1.6` | `VOLCENGINE_API_KEY` |
+| Tencent/Hunyuan | `tencent/deepseek-v4-pro` | `TENCENT_API_KEY` |
+| MiMo (Singapore) | `xiaomi_mimo/mimo-v2-pro` | `XIAOMI_MIMO_API_KEY` |
+
+## Usage
+
+### CLI
+
+```bash
+# 1. Init brand project
 fp init "Brand Name" \
   --desc "Deskripsi brand" \
   --url "https://brand.com" \
@@ -20,13 +83,26 @@ fp init "Brand Name" \
   --competitors "Kompetitor1, Kompetitor2" \
   --mode unbranded \
   --lang id
+
+# 2. Research — fetch real queries dari Google Autocomplete
+fp research
+
+# 3. Discover — problem discovery + focus clusters
+fp discover
+
+# 4. Generate prompts
+fp prompt-generate
+
+# 5. Score
+fp score
+
+# 6. Export
+fp export json
 ```
 
-`fp` otomatis load `.env` dari project root — tidak perlu `export`.
+### MCP Server (OpenCode)
 
-## Setup (MCP Server)
-
-Tambahkan di `opencode.jsonc` (global atau project-level):
+Tambahkan di `opencode.jsonc`:
 
 ```jsonc
 {
@@ -43,38 +119,22 @@ Tambahkan di `opencode.jsonc` (global atau project-level):
 }
 ```
 
-Atau untuk provider lain:
-```jsonc
-"env": {
-  "FP_MODEL": "minimax/MiniMax-M2.1",
-  "MINIMAX_API_KEY": "your-key"
-}
-```
-
-## Pipeline
-
-```
-init → research → discover → prompt-generate → score → export
-```
-
-Setiap step menyimpan state ke `fp-project.json`. Bisa jalan di CLI atau MCP server.
-
 ## CLI Commands
 
-### `fp init`
-Init brand project baru.
+| Command | Description |
+|---------|-------------|
+| `fp init` | Init brand project baru |
+| `fp research` | Fetch real queries dari Google Autocomplete |
+| `fp discover` | Problem discovery + focus clustering (LLM) |
+| `fp prompt-generate` | Generate prompt variants |
+| `fp score` | Score prompts untuk relevance |
+| `fp export json\|csv` | Export hasil |
+| `fp status` | Status project |
+| `fp focus-list` | List semua focuses |
+| `fp prompt-list` | List prompts (filter: `--focus`, `--mode`, `--review`) |
 
-```bash
-fp init "Sribu" \
-  --desc "Marketplace freelance Indonesia" \
-  --url "https://sribu.com" \
-  --services "desain, programming, copywriting" \
-  --competitors "Fastwork, Projects.co.id, Fiverr" \
-  --mode both \
-  --lang id
-```
+### `fp init` Options
 
-**Options:**
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--desc` | `-d` | `""` | Brand description |
@@ -84,119 +144,23 @@ fp init "Sribu" \
 | `--mode` | `-m` | `unbranded` | `unbranded`, `branded`, `both` |
 | `--lang` | `-l` | `id` | Language code |
 
-### `fp research`
-Fetch real user queries dari Google Autocomplete.
-
-```bash
-fp research
-fp research --extra "tips bisnis online,cara jualan online"
-fp research --no-autocomplete
-```
-
-**Options:**
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--extra` | `-e` | Extra seed queries, comma-separated |
-| `--no-autocomplete` | | Skip Google Autocomplete |
-
-### `fp discover`
-Problem discovery + focus clustering pakai LLM. Kalau sudah jalan `research`, pakai data real. Kalau belum, pakai LLM-only guessing.
-
-```bash
-fp discover
-fp discover --model gpt-4o
-```
-
-### `fp prompt-generate`
-Generate prompt variants untuk setiap focus.
-
-```bash
-fp prompt-generate
-fp prompt-generate --model gpt-4o
-```
-
-### `fp score`
-Score semua prompt untuk brand relevance dan mention likelihood.
-
-```bash
-fp score
-fp score --model gpt-4o
-```
-
-### `fp focus-list`
-List semua focuses.
-
-```bash
-fp focus-list
-```
-
-### `fp prompt-list`
-List prompts, bisa difilter.
-
-```bash
-fp prompt-list
-fp prompt-list --focus "desain"
-fp prompt-list --mode unbranded
-fp prompt-list --review
-```
-
-### `fp export`
-Export project data ke JSON atau CSV.
-
-```bash
-fp export json
-fp export csv
-fp export json -o my-export.json
-```
-
-### `fp status`
-Tampilkan status project.
-
-```bash
-fp status
-```
-
-## MCP Server
-
-Entry point: `fp-mcp` (stdio transport).
-
-### MCP Tools
-
-| Tool | Description | Args |
-|------|-------------|------|
-| `fp_init` | Init brand project | `name`, `description`, `website`, `services`, `competitors`, `mode`, `language` |
-| `fp_research` | Fetch real queries dari Google Autocomplete | `extra`, `include_autocomplete` |
-| `fp_discover` | Problem discovery + focus clustering | `model` |
-| `fp_generate_prompts` | Generate prompt variants | `focus_name`, `mode`, `model` |
-| `fp_score` | Score prompts | `focus_name`, `model` |
-| `fp_export` | Export data | `fmt` (json/csv) |
-| `fp_status` | Project status | — |
-
-### MCP Resources
-
-| URI | Description |
-|-----|-------------|
-| `fp://project` | Full project state (JSON) |
-| `fp://focuses` | Focus list + summary metrics |
-| `fp://focus/{name}/prompts` | Prompts untuk focus tertentu |
-
-## Data Flow
+## Pipeline
 
 ```
-Brand Config (init)
-    ↓
-Research (web) — real queries dari Google Suggest API
-    ↓
-Problem Discovery (LLM) — problems by category
-    ↓ list[dict]
-Focus Clustering (LLM) — 4-8 topic clusters
-    ↓ list[Focus]
-Prompt Generation (LLM) — unbranded/branded variants
-    ↓ list[Focus] with ScoredPrompts
-Relevance Scoring (LLM) — scores + priorities
-    ↓
-Export / Display
+init → research → discover → prompt-generate → score → export
 ```
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `fp_init` | Init brand project |
+| `fp_research` | Fetch real queries dari Google Autocomplete |
+| `fp_discover` | Problem discovery + focus clustering |
+| `fp_generate_prompts` | Generate prompt variants |
+| `fp_score` | Score prompts |
+| `fp_export` | Export data |
+| `fp_status` | Project status |
 
 ## Models
 
@@ -204,16 +168,9 @@ Export / Display
 |-------|--------|
 | `Brand` | `name`, `description`, `website`, `service_categories`, `competitors` |
 | `Focus` | `name`, `description`, `lens`, `priority`, `signals`, `signal_count`, `service_match_score`, `prompts` |
-| `Prompt` → `ScoredPrompt` | `text`, `intent`, `mode`, `language`, `service_match`, `mention_likelihood`, `overall_score`, `needs_review` |
-| `ProjectConfig` | `brand`, `prompt_mode`, `language`, `output_dir` |
-| `ProjectState` | `config`, `focuses`, `web_data` |
-
-**Prompt Intent Types:** `info`, `comparison`, `how-to`, `hire`, `review`, `troubleshoot`, `explore`, `verify`
-
-**Prompt Modes:** `unbranded` (mention likelihood weighted higher), `branded` (service match weighted higher), `both`
+| `ScoredPrompt` | `text`, `intent`, `mode`, `language`, `service_match`, `mention_likelihood`, `overall_score`, `needs_review` |
 
 ## Requirements
 
 - Python 3.11+
 - LLM API key (OpenAI, DeepSeek, MiniMax, Qwen, dll)
-- LiteLLM — supports 100+ providers via `FP_MODEL` env var

@@ -4,20 +4,44 @@ AI Brand Visibility Research Tool — prediksi dan generate unbranded prompt yan
 
 ## Installation
 
-### Option 1: From source (recommended)
+### From PyPI (recommended)
 
 ```bash
-git clone https://github.com/your-org/focus-prompt.git
+pip install focus-prompt
+```
+
+### From source
+
+```bash
+git clone https://github.com/optimize-avo/focus-prompt.git
 cd focus-prompt
 pip install .
 ```
 
-### Option 2: Development mode
+### Development mode
 
 ```bash
-git clone https://github.com/your-org/focus-prompt.git
+git clone https://github.com/optimize-avo/focus-prompt.git
 cd focus-prompt
 pip install -e .
+```
+
+## Update
+
+```bash
+# From PyPI
+pip install --upgrade focus-prompt
+
+# From source
+git pull
+pip install .
+```
+
+## Uninstall
+
+```bash
+pip uninstall focus-prompt
+# .env, fp-project.json, dan export files tetap ada (data aman)
 ```
 
 ## Configuration

@@ -8,12 +8,14 @@ from pathlib import Path
 from typing import Optional
 
 import typer
-from openai import OpenAI
 from rich.console import Console
+
+import asyncio
 
 from fp.generate.focuses import generate_focuses
 from fp.generate.prompts import generate_all_prompts
-from fp.enrichment.problems import discover_problems
+from fp.enrichment.problems import discover_problems, discover_problems_enriched
+from fp.research.web import research_queries
 from fp.models import (
     Brand,
     Focus,
@@ -35,15 +37,6 @@ console = Console()
 err_console = Console(stderr=True)
 
 PROJECT_FILE = "fp-project.json"
-
-
-def _get_client() -> OpenAI:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        err_console.print("[red]Error:[/red] OPENAI_API_KEY not set")
-        err_console.print("Set it: export OPENAI_API_KEY=sk-...")
-        raise typer.Exit(1)
-    return OpenAI(api_key=api_key)
 
 
 def _load_state() -> ProjectState:
@@ -102,10 +95,51 @@ def init(
 
 
 @app.command()
-def discover():
+def research(
+    extra: str = typer.Option("", "--extra", "-e", help="Extra seed queries, comma-separated"),
+    no_autocomplete: bool = typer.Option(False, "--no-autocomplete", help="Skip Google Autocomplete"),
+):
+    """Fetch real user queries from Google Autocomplete."""
+    state = _load_state()
+    brand = state.config.brand
+
+    extra_queries = [q.strip() for q in extra.split(",") if q.strip()] if extra else None
+
+    console.print(f"\n🌐 Researching real user queries for [cyan]{brand.name}[/]...")
+
+    try:
+        web_data = asyncio.run(research_queries(
+            brand,
+            extra_queries=extra_queries,
+            include_autocomplete=not no_autocomplete,
+        ))
+    except Exception as e:
+        err_console.print(f"[red]Web research failed:[/red] {e}")
+        raise typer.Exit(1)
+
+    stats = web_data["stats"]
+    console.print(f"  ✓ Autocomplete: [bold]{stats['autocomplete_count']}[/] suggestions")
+    console.print(f"  ✓ Total queries: [bold]{stats['total_queries']}[/]")
+
+    # Save web data to state
+    state.web_data = web_data
+    _save_state(state)
+
+    # Show sample
+    if web_data["autocomplete"]:
+        console.print("\n[dim]Sample autocomplete:[/dim]")
+        for q in web_data["autocomplete"][:5]:
+            console.print(f"  • {q}")
+
+    console.print("\nNext: [bold]fp discover[/] — uses this real data for problem discovery")
+
+
+@app.command()
+def discover(
+    model: str = typer.Option("", "--model", "-M", help="LLM model (default: env FP_MODEL or gpt-4o-mini)"),
+):
     """Discover problems and generate focuses from LLM + web signals."""
     state = _load_state()
-    client = _get_client()
     brand = state.config.brand
 
     if not brand.description and not brand.service_categories:
@@ -116,7 +150,13 @@ def discover():
     console.print(f"\n🔍 Discovering problems around [cyan]{brand.name}[/]...")
 
     try:
-        problems = discover_problems(brand, client)
+        web_data = getattr(state, 'web_data', None)
+        if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
+            console.print("  📡 Using real web research data as ground truth")
+            problems = discover_problems_enriched(brand, web_data, model=model)
+        else:
+            console.print("  ⚠ No web data — using LLM-only discovery (run [bold]fp research[/] first for better results)")
+            problems = discover_problems(brand, model=model)
     except Exception as e:
         err_console.print(f"[red]Problem discovery failed:[/red] {e}")
         raise typer.Exit(1)
@@ -129,7 +169,7 @@ def discover():
 
     console.print("🧠 Generating focuses...")
     try:
-        focuses = generate_focuses(brand, problems, client)
+        focuses = generate_focuses(brand, problems, model=model)
     except Exception as e:
         err_console.print(f"[red]Focus generation failed:[/red] {e}")
         raise typer.Exit(1)
@@ -145,10 +185,11 @@ def discover():
 
 
 @app.command()
-def prompt_generate():
+def prompt_generate(
+    model: str = typer.Option("", "--model", "-M", help="LLM model (default: env FP_MODEL or gpt-4o-mini)"),
+):
     """Generate prompt variants for each focus (unbranded-first)."""
     state = _load_state()
-    client = _get_client()
     brand = state.config.brand
 
     if not state.focuses:
@@ -159,7 +200,7 @@ def prompt_generate():
     console.print(f"   Mode: [yellow]{state.config.prompt_mode.value}[/]")
 
     try:
-        updated = generate_all_prompts(brand, state.focuses, client, state.config.prompt_mode)
+        updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode, model=model)
     except Exception as e:
         err_console.print(f"[red]Prompt generation failed:[/red] {e}")
         raise typer.Exit(1)
@@ -176,10 +217,11 @@ def prompt_generate():
 
 
 @app.command()
-def score():
+def score(
+    model: str = typer.Option("", "--model", "-M", help="LLM model (default: env FP_MODEL or gpt-4o-mini)"),
+):
     """Score all prompts for brand relevance and mention likelihood."""
     state = _load_state()
-    client = _get_client()
     brand = state.config.brand
 
     total_prompts = sum(len(f.prompts) for f in state.focuses)
@@ -190,7 +232,7 @@ def score():
     console.print(f"\n📊 Scoring {total_prompts} prompts for relevance to [cyan]{brand.name}[/]...")
 
     try:
-        state.focuses = score_all(state.focuses, brand, client)
+        state.focuses = score_all(state.focuses, brand, model=model)
     except Exception as e:
         err_console.print(f"[red]Scoring failed:[/red] {e}")
         raise typer.Exit(1)

@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "last_run": "2026-07-10T09:05:29.791Z",
+    "root": "/Users/admin/Documents/GitHub/focus-prompt",
+    "include_patterns": [
+      "fp/**/*.py"
+    ],
+    "exclude_patterns": [
+      "**/__pycache__/**",
+      "**/*.pyc"
+    ],
+    "exceptions": []
+  },
+  "file_hashes": {
+    "fp/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
+    "fp/cli.py": "15b55d9104906c2ee6804a3e4ba81da2",
+    "fp/enrichment/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
+    "fp/enrichment/problems.py": "54c6b2cb7d4d4252c15f66a2754f6461",
+    "fp/generate/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
+    "fp/generate/focuses.py": "b79368e2cc22b50661c32732819e10b7",
+    "fp/generate/prompts.py": "1a1e981d9d4c0a2c8fdf21db19da8ff6",
+    "fp/models.py": "c4a1565d0a232e29492b97da345b7ab5",
+    "fp/output/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
+    "fp/output/export.py": "41f1cc26df3ba432171dd8279b7a3b66",
+    "fp/output/table.py": "92aa6c747fcd6273fb8ae2915e3258bb",
+    "fp/scoring/__init__.py": "d41d8cd98f00b204e9800998ecf8427e",
+    "fp/scoring/scorer.py": "649bac17a19d4faf412be95d22014cb1",
+    "fp/server.py": "a690c4ced8fc25017ce7e792ec35b950"
+  },
+  "folder_hashes": {
+    ".": "",
+    "fp": "9e131447633277e7614b481bdf49fbc8",
+    "fp/enrichment": "2ff2e787a87907c3de0808cad73bd026",
+    "fp/generate": "e1878f6c16b168c49c17f1cb07f44b45",
+    "fp/output": "3fb945d509c3354c3ca7bbcab2c784c3",
+    "fp/scoring": "e30776dddfd76b77e656eaa446a22b02"
+  }
+}

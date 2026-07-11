@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import json
 
-from openai import OpenAI
-
+from fp.llm import completion
 from fp.models import Brand, Focus, PromptMode, Prompt, PromptIntent, ScoredPrompt
 
 
@@ -63,7 +62,7 @@ def _call_prompt_gen(
     brand: Brand,
     focus: Focus,
     prompt_template: str,
-    client: OpenAI,
+    model: str = "",
 ) -> list[dict]:
     """Call LLM to generate prompts for a focus."""
     focus_input = {
@@ -76,8 +75,8 @@ def _call_prompt_gen(
 
     system_msg = prompt_template.format(brand_name=brand.name)
 
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+    resp = completion(
+        model=model,
         messages=[
             {"role": "system", "content": system_msg},
             {"role": "user", "content": json.dumps(focus_input, indent=2)},
@@ -96,14 +95,14 @@ def _call_prompt_gen(
 def generate_prompts_for_focus(
     brand: Brand,
     focus: Focus,
-    client: OpenAI,
     mode: PromptMode = PromptMode.UNBRANDED,
+    model: str = "",
 ) -> list[ScoredPrompt]:
     """Generate prompts for a single focus."""
     all_prompts = []
 
     if mode in (PromptMode.UNBRANDED, PromptMode.BOTH):
-        unbranded = _call_prompt_gen(brand, focus, UNBRANDED_PROMPT_PROMPT, client)
+        unbranded = _call_prompt_gen(brand, focus, UNBRANDED_PROMPT_PROMPT, model=model)
         for p in unbranded:
             all_prompts.append(ScoredPrompt(
                 text=p["text"],
@@ -114,7 +113,7 @@ def generate_prompts_for_focus(
             ))
 
     if mode in (PromptMode.BRANDED, PromptMode.BOTH):
-        branded = _call_prompt_gen(brand, focus, BRANDED_PROMPT_PROMPT, client)
+        branded = _call_prompt_gen(brand, focus, BRANDED_PROMPT_PROMPT, model=model)
         for p in branded:
             all_prompts.append(ScoredPrompt(
                 text=p["text"],
@@ -130,12 +129,12 @@ def generate_prompts_for_focus(
 def generate_all_prompts(
     brand: Brand,
     focuses: list[Focus],
-    client: OpenAI,
     mode: PromptMode = PromptMode.UNBRANDED,
+    model: str = "",
 ) -> list[Focus]:
     """Generate prompts for all focuses in place."""
     import copy
     updated = copy.deepcopy(focuses)
     for focus in updated:
-        focus.prompts = generate_prompts_for_focus(brand, focus, client, mode)
+        focus.prompts = generate_prompts_for_focus(brand, focus, mode, model=model)
     return updated

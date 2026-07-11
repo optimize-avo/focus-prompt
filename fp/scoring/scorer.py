@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import json
 
-from openai import OpenAI
-
+from fp.llm import completion
 from fp.models import Brand, Focus, PromptMode, ScoredPrompt
 
 
@@ -29,12 +28,12 @@ Rules:
 """
 
 
-def score_prompt(prompt: ScoredPrompt, brand: Brand, client: OpenAI) -> ScoredPrompt:
+def score_prompt(prompt: ScoredPrompt, brand: Brand, model: str = "") -> ScoredPrompt:
     """Score a single prompt for relevance to the brand."""
     system_msg = SCORE_PROMPT.format(brand_name=brand.name)
 
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+    resp = completion(
+        model=model,
         messages=[
             {"role": "system", "content": system_msg},
             {"role": "user", "content": json.dumps({
@@ -71,11 +70,11 @@ def score_prompt(prompt: ScoredPrompt, brand: Brand, client: OpenAI) -> ScoredPr
     return prompt
 
 
-def score_focus(focus: Focus, brand: Brand, client: OpenAI) -> Focus:
+def score_focus(focus: Focus, brand: Brand, model: str = "") -> Focus:
     """Score all prompts in a focus and derive focus-level metrics."""
     scored_prompts = []
     for p in focus.prompts:
-        scored = score_prompt(p, brand, client)
+        scored = score_prompt(p, brand, model=model)
         scored_prompts.append(scored)
 
     focus.prompts = scored_prompts
@@ -89,12 +88,12 @@ def score_focus(focus: Focus, brand: Brand, client: OpenAI) -> Focus:
     return focus
 
 
-def score_all(focuses: list[Focus], brand: Brand, client: OpenAI) -> list[Focus]:
+def score_all(focuses: list[Focus], brand: Brand, model: str = "") -> list[Focus]:
     """Score all focuses."""
     import copy
     updated = copy.deepcopy(focuses)
     for i, focus in enumerate(updated):
-        updated[i] = score_focus(focus, brand, client)
+        updated[i] = score_focus(focus, brand, model=model)
 
     updated.sort(key=lambda f: f.service_match_score, reverse=True)
 

@@ -79,6 +79,7 @@ class ProjectConfig(BaseModel):
 class ProjectState(BaseModel):
     config: ProjectConfig
     focuses: list[Focus] = Field(default_factory=list)
+    web_data: dict | None = None
 
     def save(self, path: str | Path):
         path = Path(path)

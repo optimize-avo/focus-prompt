@@ -7,11 +7,12 @@ from pathlib import Path
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
-from openai import OpenAI
 
 from fp.generate.focuses import generate_focuses
 from fp.generate.prompts import generate_all_prompts
-from fp.enrichment.problems import discover_problems
+import asyncio
+from fp.research.web import research_queries
+from fp.enrichment.problems import discover_problems, discover_problems_enriched
 from fp.models import (
     Brand,
     Focus,
@@ -24,13 +25,6 @@ from fp.output.export import export_json, export_csv
 
 mcp = FastMCP("Focus Prompt")
 PROJECT_FILE = "fp-project.json"
-
-
-def _get_client() -> OpenAI | None:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
-    return OpenAI(api_key=api_key)
 
 
 def _load_state() -> ProjectState | None:
@@ -99,23 +93,67 @@ async def fp_init(
 
 
 @mcp.tool()
-async def fp_discover() -> str:
-    """Discover user problems and generate focus clusters.
-    Requires fp_init to have been run first.
-    Requires OPENAI_API_KEY environment variable.
+async def fp_research(
+    extra: str = "",
+    include_autocomplete: bool = True,
+) -> str:
+    """Fetch real user queries from Google Autocomplete.
+
+    Run this BEFORE fp_discover for grounded, data-backed problem discovery.
+    Without this, fp_discover uses LLM-only guessing.
+
+    Args:
+        extra: Optional extra seed queries, comma-separated
+        include_autocomplete: Whether to fetch Google Autocomplete (default: true)
     """
     state = _load_state()
     if not state:
         return json.dumps({"error": "No project found. Run fp_init first."})
 
-    client = _get_client()
-    if not client:
-        return json.dumps({"error": "OPENAI_API_KEY not set"})
+    brand = state.config.brand
+    extra_queries = [q.strip() for q in extra.split(",") if q.strip()] if extra else None
+
+    try:
+        web_data = await research_queries(
+            brand,
+            extra_queries=extra_queries,
+            include_autocomplete=include_autocomplete,
+        )
+    except Exception as e:
+        return json.dumps({"error": f"Web research failed: {str(e)}"})
+
+    state.web_data = web_data
+    _save_state(state)
+
+    stats = web_data["stats"]
+    sample_autocomplete = web_data["autocomplete"][:5]
+
+    return json.dumps({
+        "status": "ok",
+        "stats": stats,
+        "sample_autocomplete": sample_autocomplete,
+        "message": f"Run fp_discover next — it will use this real data as ground truth.",
+    }, indent=2, ensure_ascii=False)
+
+
+@mcp.tool()
+async def fp_discover(model: str = "") -> str:
+    """Discover user problems and generate focus clusters.
+    Requires fp_init to have been run first.
+    Model configured via FP_MODEL env var or --model flag.
+    """
+    state = _load_state()
+    if not state:
+        return json.dumps({"error": "No project found. Run fp_init first."})
 
     brand = state.config.brand
 
     try:
-        problems = discover_problems(brand, client)
+        web_data = getattr(state, 'web_data', None)
+        if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
+            problems = await discover_problems_enriched(brand, web_data, model=model)
+        else:
+            problems = discover_problems(brand, model=model)
     except Exception as e:
         return json.dumps({"error": f"Problem discovery failed: {str(e)}"})
 
@@ -123,7 +161,7 @@ async def fp_discover() -> str:
         return json.dumps({"error": "No problems discovered. Check brand input."})
 
     try:
-        focuses = generate_focuses(brand, problems, client)
+        focuses = generate_focuses(brand, problems, model=model)
     except Exception as e:
         return json.dumps({"error": f"Focus generation failed: {str(e)}"})
 
@@ -150,6 +188,7 @@ async def fp_discover() -> str:
 async def fp_generate_prompts(
     focus_name: str = "",
     mode: str = "",
+    model: str = "",
 ) -> str:
     """Generate prompt variants for each focus.
     Requires fp_discover to have been run first.
@@ -165,10 +204,6 @@ async def fp_generate_prompts(
     if not state.focuses:
         return json.dumps({"error": "No focuses. Run fp_discover first."})
 
-    client = _get_client()
-    if not client:
-        return json.dumps({"error": "OPENAI_API_KEY not set"})
-
     brand = state.config.brand
     prompt_mode = PromptMode(mode) if mode else state.config.prompt_mode
 
@@ -179,7 +214,7 @@ async def fp_generate_prompts(
             return json.dumps({"error": f"No focus matching '{focus_name}'"})
 
     try:
-        updated = generate_all_prompts(brand, targets, client, prompt_mode)
+        updated = generate_all_prompts(brand, targets, prompt_mode, model=model)
     except Exception as e:
         return json.dumps({"error": f"Prompt generation failed: {str(e)}"})
 
@@ -214,7 +249,7 @@ async def fp_generate_prompts(
 
 
 @mcp.tool()
-async def fp_score(focus_name: str = "") -> str:
+async def fp_score(focus_name: str = "", model: str = "") -> str:
     """Score all prompts for brand relevance and mention likelihood.
     Requires fp_generate_prompts to have been run first.
 
@@ -229,10 +264,6 @@ async def fp_score(focus_name: str = "") -> str:
     if total_prompts == 0:
         return json.dumps({"error": "No prompts to score. Run fp_generate_prompts first."})
 
-    client = _get_client()
-    if not client:
-        return json.dumps({"error": "OPENAI_API_KEY not set"})
-
     brand = state.config.brand
 
     targets = state.focuses
@@ -242,7 +273,7 @@ async def fp_score(focus_name: str = "") -> str:
             return json.dumps({"error": f"No focus matching '{focus_name}'"})
 
     try:
-        scored = score_all(targets, brand, client)
+        scored = score_all(targets, brand, model=model)
     except Exception as e:
         return json.dumps({"error": f"Scoring failed: {str(e)}"})
 
@@ -388,6 +419,99 @@ async def focuses_resource() -> str:
     ]
 
     return json.dumps(result, indent=2, ensure_ascii=False)
+
+
+@mcp.resource("fp://docs")
+async def docs_resource() -> str:
+    """Full usage documentation for focus-prompt MCP server and CLI."""
+    return """# focus-prompt — Usage Docs
+
+AI Brand Visibility Research Tool — prediksi dan generate unbranded prompt yang bisa dipakai AI chatbot untuk menemukan dan mention brand kamu.
+
+## Pipeline
+```
+init → research → discover → prompt-generate → score → export
+```
+
+## Model Configuration
+
+Model-agnostic via LiteLLM — supports 100+ providers.
+
+**Model selection priority:**
+1. `model` parameter (from --model flag or MCP param)
+2. `FP_MODEL` environment variable
+3. Default: `gpt-4o-mini`
+
+**Supported providers (examples):**
+| Provider | FP_MODEL value | API Key Env Var |
+|----------|---------------|-----------------|
+| OpenAI | `gpt-4o-mini` | `OPENAI_API_KEY` |
+| DeepSeek | `deepseek/deepseek-chat` | `DEEPSEEK_API_KEY` |
+| MiniMax (Singapore) | `minimax/MiniMax-M2.1` | `MINIMAX_API_KEY` |
+| Qwen/Alibaba | `dashscope/qwen-max` | `DASHSCOPE_API_KEY` |
+| Zhipu/GLM | `zai/glm-4.7` | `ZAI_API_KEY` |
+| Moonshot/Kimi | `moonshot/kimi-k2-thinking` | `MOONSHOT_API_KEY` |
+| ByteDance/Doubao | `volcengine/doubao-seed-1.6` | `VOLCENGINE_API_KEY` |
+| Tencent/Hunyuan | `tencent/deepseek-v4-pro` | `TENCENT_API_KEY` |
+| MiMo (Singapore) | `xiaomi_mimo/mimo-v2-pro` | `XIAOMI_MIMO_API_KEY` |
+| Any OpenAI-compatible | `openai/<model>` + `api_base` | Provider-specific |
+
+## MCP Tools
+
+| Tool | Description | Args |
+|------|-------------|------|
+| `fp_init` | Init brand project | `name`, `description`, `website`, `services` (comma-sep), `competitors` (comma-sep), `mode` (unbranded/branded/both), `language` |
+| `fp_research` | Fetch real queries dari Google Autocomplete | `extra` (comma-seed queries), `include_autocomplete` |
+| `fp_discover` | Problem discovery + focus clustering (LLM) | `model` |
+| `fp_generate_prompts` | Generate prompt variants per focus | `focus_name` (optional filter), `mode`, `model` |
+| `fp_score` | Score prompts untuk brand relevance | `focus_name` (optional filter), `model` |
+| `fp_export` | Export data | `fmt` (json/csv) |
+| `fp_status` | Project status | — |
+
+## MCP Resources
+
+| URI | Description |
+|-----|-------------|
+| `fp://project` | Full project state (JSON) |
+| `fp://focuses` | Focus list + summary metrics |
+| `fp://focus/{name}/prompts` | Prompts untuk focus tertentu |
+| `fp://docs` | Dokumentasi ini |
+
+## Quick Start (MCP)
+```
+1. fp_init — init brand (name, description, services, competitors)
+2. fp_research — fetch real user queries dari Google Autocomplete (optional tapi better)
+3. fp_discover — problem discovery + focus clusters
+4. fp_generate_prompts — generate prompt variants
+5. fp_score — score relevance
+6. fp_export — export hasil
+```
+
+## CLI Commands
+```
+fp init "Brand" --desc "..." --services "s1,s2" --competitors "k1,k2"
+fp research --extra "seed1,seed2"
+fp discover
+fp prompt-generate
+fp score
+fp export json|csv
+fp status
+fp focus-list
+fp prompt-list --focus "name" --mode unbranded --review
+```
+
+## Models
+- **Brand**: name, description, website, service_categories, competitors
+- **Focus**: name, description, lens, priority, signals, signal_count, service_match_score, prompts
+- **ScoredPrompt**: text, intent, mode, language, service_match, mention_likelihood, overall_score, needs_review
+- **PromptIntent**: info, comparison, how-to, hire, review, troubleshoot, explore, verify
+- **PromptMode**: unbranded (mention likelihood weighted higher), branded (service match weighted higher), both
+
+## Requirements
+- Python 3.11+
+- LLM API key (OPENAI_API_KEY, DEEPSEEK_API_KEY, MINIMAX_API_KEY, etc.)
+- Set FP_MODEL env var to choose provider (default: gpt-4o-mini)
+"""
 
 
 @mcp.resource("fp://focus/{name}/prompts")

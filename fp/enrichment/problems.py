@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Optional
 
 import httpx
-from openai import OpenAI
 
+from fp.llm import completion
 from fp.models import Brand
 
 
@@ -46,12 +47,12 @@ Rules:
 """
 
 
-def discover_problems(brand: Brand, client: OpenAI) -> list[dict]:
+def discover_problems(brand: Brand, model: str = "") -> list[dict]:
     """Use LLM to discover real user problems around brand's service categories."""
     categories_str = ", ".join(brand.service_categories) if brand.service_categories else brand.description
 
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+    resp = completion(
+        model=model,
         messages=[
             {"role": "system", "content": PROBLEM_DISCOVERY_PROMPT},
             {"role": "user", "content": json.dumps({
@@ -71,7 +72,7 @@ def discover_problems(brand: Brand, client: OpenAI) -> list[dict]:
 
 
 def discover_problems_web(brand: Brand) -> list[str]:
-    """Optional: fetch real user queries from web sources (Reddit, Google PAA, etc.).
+    """Optional: fetch real user queries from web sources.
     For MVP, this is a placeholder — returns empty list.
     """
     queries = []
@@ -87,3 +88,86 @@ def discover_problems_web(brand: Brand) -> list[str]:
         pass
 
     return queries
+
+
+ENRICHED_DISCOVERY_PROMPT = """You are a user research analyst. I'm providing you with REAL search data collected from Google Autocomplete suggestions. This is ground truth — real things people actually search for.
+
+Use this real data as your PRIMARY source. Supplement with your knowledge only where the data has gaps.
+
+For each service category, analyze the real queries and identify:
+1. What problems do users have that lead them to need this service?
+2. What specific needs (hire, compare, learn, find) do they express?
+3. What pain points (cheap, trusted, fast, quality) do they mention?
+4. How do they phrase their search — casual, formal, in Indonesian, in English?
+
+OUTPUT FORMAT — Return a JSON object:
+{{
+  "problems": [
+    {{
+      "category": "service category name",
+      "problems": [
+        {{
+          "pain_point": "high cost / not trusted / hard to find",
+          "raw_queries": [
+            "real user query 1",
+            "real user query 2"
+          ],
+          "source": "autocomplete|synthesized"
+        }}
+      ]
+    }}
+  ]
+}}
+
+Rules:
+- PRIORITIZE queries from the real data provided
+- Mark each problem's source: autocomplete or synthesized
+- Queries must reflect the real search patterns provided
+- Be specific, not generic
+"""
+
+
+async def discover_problems_enriched(
+    brand: Brand,
+    web_data: dict,
+    model: str = "",
+) -> list[dict]:
+    """Discover problems using real web research data as ground truth.
+
+    Args:
+        brand: Brand info
+        web_data: Output from fp.research.web.research_queries()
+        model: LLM model identifier
+
+    Returns:
+        List of problem dicts with category, problems, pain_point, raw_queries, source
+    """
+    # Build context from real data
+    autocomplete_sample = web_data.get("autocomplete", [])[:30]
+    all_queries = web_data.get("all_queries", [])[:50]
+
+    real_data_context = {
+        "brand": brand.name,
+        "description": brand.description,
+        "service_categories": brand.service_categories,
+        "competitors": brand.competitors,
+        "real_data": {
+            "autocomplete_suggestions": autocomplete_sample,
+            "merged_queries": all_queries,
+            "stats": web_data.get("stats", {}),
+        },
+    }
+
+    resp = completion(
+        model=model,
+        messages=[
+            {"role": "system", "content": ENRICHED_DISCOVERY_PROMPT},
+            {"role": "user", "content": json.dumps(real_data_context, indent=2, ensure_ascii=False)},
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.5,
+    )
+
+    raw = resp.choices[0].message.content
+    data = json.loads(raw)
+    return data.get("problems", [])

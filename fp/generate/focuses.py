@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import json
 
-from openai import OpenAI
-
+from fp.llm import completion
 from fp.models import Brand, Focus
 
 
@@ -36,10 +35,10 @@ Rules:
 """
 
 
-def generate_focuses(brand: Brand, problems: list[dict], client: OpenAI) -> list[Focus]:
+def generate_focuses(brand: Brand, problems: list[dict], model: str = "") -> list[Focus]:
     """Generate focus clusters from discovered problems using LLM."""
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+    resp = completion(
+        model=model,
         messages=[
             {"role": "system", "content": FOCUS_GENERATION_PROMPT},
             {"role": "user", "content": json.dumps({

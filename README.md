@@ -56,54 +56,68 @@ pip install .
 
 ```bash
 pip uninstall focus-prompt
-# .env, fp-project.json, dan export files tetap ada (data aman)
+# ~/.config/fp/config.env, fp-project.json, dan export files tetap ada (data aman)
+# Hapus config: rm -rf ~/.config/fp/
 ```
 
 ## Configuration
 
-### 1. Buat file `.env`
+### Quick Setup (recommended)
+
+```bash
+fp setup
+```
+
+Interactive wizard — pilih provider, masukkan API key. Config disimpan di `~/.config/fp/config.env` dan berlaku untuk semua project.
+
+```bash
+$ fp setup
+
+Available providers:
+
+  1. OpenAI
+  2. MiniMax (Singapore)
+  3. DeepSeek
+  4. Qwen/Alibaba
+  5. MiMo (Singapore)
+  6. Zhipu/GLM
+  7. Moonshot/Kimi
+  8. ByteDance/Doubao
+  9. Tencent/Hunyuan
+
+Select provider: 2
+Model: minimax/MiniMax-M2.1
+MINIMAX_API_KEY: your-key-here
+
+✓ Config saved to ~/.config/fp/config.env
+```
+
+**Bisa dijalankan ulang kapan saja** untuk ganti provider atau API key.
+
+### Manual Setup (legacy)
+
+Kalau lebih suka `.env` per-project:
 
 ```bash
 cp .env.example .env
+# Edit .env — set FP_MODEL and API key
 ```
 
-### 2. Pilih model dan set API key
+### Config Priority
 
-Edit `.env`:
+| Priority | Source | Example |
+|----------|--------|---------|
+| 1 (highest) | Environment variable | `export MINIMAX_API_KEY=...` |
+| 2 | User config | `~/.config/fp/config.env` |
+| 3 (lowest) | Project `.env` | `./.env` |
 
-```bash
-# Step 1: Pilih model (uncomment salah satu)
-FP_MODEL=gpt-4o-mini
-# FP_MODEL=minimax/MiniMax-M2.1
-# FP_MODEL=deepseek/deepseek-chat
-# FP_MODEL=dashscope/qwen-max
-# FP_MODEL=xiaomi_mimo/MiMo-7B-RL
-
-# Step 2: Set API key untuk provider yang dipilih
-OPENAI_API_KEY=sk-your-key-here
-# MINIMAX_API_KEY=your-key-here
-# DEEPSEEK_API_KEY=sk-your-key-here
-# DASHSCOPE_API_KEY=your-key-here
-# XIAOMI_MIMO_API_KEY=your-key-here
-```
-
-### 3. Verifikasi
+### Verifikasi
 
 ```bash
 fp status
 ```
 
-Kalau muncul warning `⚠ FP_MODEL='...' requires ..._API_KEY`, berarti API key belum diset.
-
-> **Tip:** Kalau API key mengandung karakter spesial (`/`, newline, dll), jangan pakai `sed`. Pakai Python:
-> ```bash
-> python3 -c "
-> path = '.env'
-> with open(path) as f: c = f.read()
-> key = input('Paste key: ').strip()
-> with open(path, 'w') as f: f.write(c.replace('YOUR_KEY_HERE', key))
-> "
-> ```
+Kalau muncul warning `⚠ FP_MODEL='...' requires ..._API_KEY`, berarti API key belum diset. Jalankan `fp setup` lagi.
 
 ### Supported Providers
 
@@ -155,17 +169,7 @@ fp export csv
 
 focus-prompt bisa dijalankan sebagai MCP server — terintegrasi langsung di AI editor seperti OpenCode, Claude Code, atau Cursor.
 
-> **Set API key via terminal** (jangan pakai `sed` kalau key ada karakter spesial):
-> ```bash
-> python3 -c "
-> import json, os
-> path = os.path.expanduser('~/.config/opencode/opencode.jsonc')
-> with open(path) as f: c = f.read()
-> key = input('Paste MINIMAX_API_KEY: ').strip()
-> with open(path, 'w') as f: f.write(c.replace('your-key-here', key))
-> print('Done!')
-> "
-> ```
+> **Setup API key:** Jalankan `fp setup` sekali untuk menyimpan API key ke `~/.config/fp/config.env`. Config ini berlaku untuk semua project dan MCP server.
 
 #### OpenCode
 
@@ -246,6 +250,7 @@ Restart editor setelah ganti config.
 
 | Command | Description |
 |---------|-------------|
+| `fp setup` | Setup API key dan model (simpan ke ~/.config/fp/) |
 | `fp init` | Init brand project baru |
 | `fp research` | Fetch real queries dari Google Autocomplete |
 | `fp discover` | Problem discovery + focus clustering (LLM) |

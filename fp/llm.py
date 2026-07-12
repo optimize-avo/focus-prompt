@@ -4,12 +4,12 @@ Supports 100+ providers (OpenAI, DeepSeek, MiniMax, Qwen, MiMo, etc.)
 with automatic env-var-based API key resolution.
 
 Setup (one-time):
-  1. cp .env.example .env
-  2. Edit .env — set FP_MODEL and your provider's API key
-  3. fp discover — done
+  fp setup    — interactive config wizard, saves to ~/.config/fp/config.env
 
-.env is loaded from your current working directory automatically.
-No export needed — just edit .env and run fp.
+Config priority (highest to lowest):
+  1. Environment variables (export FP_MODEL=...)
+  2. ~/.config/fp/config.env (user-level, set via `fp setup`)
+  3. .env in current working directory (project-level, legacy)
 
 Model selection priority:
   1. Explicit `model` argument (from --model flag or MCP param)
@@ -28,23 +28,24 @@ from __future__ import annotations
 import json
 import os
 
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 import litellm
 
 DEFAULT_MODEL = "gpt-4o-mini"
 
-# Auto-load .env from current working directory.
-# python-dotenv's default find_dotenv() walks up from this module's __file__,
-# which breaks when installed via pipx (module is in venv, not cwd).
-# Fix: explicitly search from CWD using pathlib.
+# ─── Config loading (priority: env > user config > CWD .env) ───────────────
 from pathlib import Path as _Path
 
+# Step 1: Load user-level config (~/.config/fp/config.env)
+# Does NOT override existing env vars — preserves highest priority.
+from fp.config import load_user_config
+load_user_config()
+
+# Step 2: Load project-level .env from CWD (legacy, for backward compat)
+# This DOES override, matching previous behavior for .env users.
 _env_path = _Path.cwd() / ".env"
 if _env_path.exists():
     load_dotenv(_env_path, override=True)
-else:
-    # Fallback: try default search (works for `pip install -e .` dev mode)
-    load_dotenv()
 
 # Regional API base overrides — Singapore endpoints for Chinese providers.
 # Override any via env var (e.g. MINIMAX_API_BASE=https://custom.endpoint/v1).
@@ -125,7 +126,7 @@ def validate_model(model: str) -> None:
         import sys
         print(
             f"⚠  FP_MODEL={model!r} requires {env_var} to be set.\n"
-            f"   Add {env_var}=your-key to .env or export it.",
+            f"   Run [bold]fp setup[/] or add {env_var}=your-key to .env",
             file=sys.stderr,
         )
 

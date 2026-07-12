@@ -24,6 +24,7 @@ from fp.models import (
     PromptMode,
     ScoredPrompt,
 )
+from fp.config import get_current_config, get_config_path, save_user_config
 from fp.output.export import export_csv, export_json
 from fp.output.table import render_focus_table, render_prompt_table
 from fp.scoring.scorer import score_all
@@ -49,6 +50,120 @@ def _load_state() -> ProjectState:
 def _save_state(state: ProjectState):
     state.save(PROJECT_FILE)
     console.print(f"[dim]Saved to {PROJECT_FILE}[/dim]")
+
+
+PROVIDERS = {
+    "openai": {"model": "gpt-4o-mini", "env_key": "OPENAI_API_KEY", "label": "OpenAI"},
+    "minimax": {"model": "minimax/MiniMax-M2.1", "env_key": "MINIMAX_API_KEY", "label": "MiniMax (Singapore)"},
+    "deepseek": {"model": "deepseek/deepseek-chat", "env_key": "DEEPSEEK_API_KEY", "label": "DeepSeek"},
+    "dashscope": {"model": "dashscope/qwen-max", "env_key": "DASHSCOPE_API_KEY", "label": "Qwen/Alibaba"},
+    "xiaomi_mimo": {"model": "xiaomi_mimo/MiMo-7B-RL", "env_key": "XIAOMI_MIMO_API_KEY", "label": "MiMo (Singapore)"},
+    "zai": {"model": "zai/glm-4.7", "env_key": "ZAI_API_KEY", "label": "Zhipu/GLM"},
+    "moonshot": {"model": "moonshot/kimi-k2-thinking", "env_key": "MOONSHOT_API_KEY", "label": "Moonshot/Kimi"},
+    "volcengine": {"model": "volcengine/doubao-seed-1.6", "env_key": "VOLCENGINE_API_KEY", "label": "ByteDance/Doubao"},
+    "tencent": {"model": "tencent/deepseek-v4-pro", "env_key": "TENCENT_API_KEY", "label": "Tencent/Hunyuan"},
+}
+
+
+@app.command()
+def setup(
+    provider: str = typer.Option("", "--provider", "-p", help="Provider name (skip for interactive)"),
+    model: str = typer.Option("", "--model", "-m", help="Model name (skip for interactive)"),
+    api_key: str = typer.Option("", "--key", "-k", help="API key (skip for interactive)"),
+):
+    """Setup API key and model — saved to ~/.config/fp/config.env.
+
+    Run this once after install, or anytime to change provider/key.
+    Config is stored per-user, not per-project — works from any directory.
+    """
+    current = get_current_config()
+    config_path = get_config_path()
+
+    # Show current config if exists
+    if config_path.exists():
+        console.print("[bold]Current config:[/]\n")
+        current_model = current.get("FP_MODEL", "")
+        current_key = ""
+        for k, v in current.items():
+            if k.endswith("_API_KEY") and v:
+                current_key = f"{v[:8]}...{v[-4:]}" if len(v) > 12 else "***"
+                current_provider = k.replace("_API_KEY", "").lower()
+                break
+        else:
+            current_provider = ""
+
+        if current_model:
+            console.print(f"  Model:  [cyan]{current_model}[/]")
+        if current_key:
+            console.print(f"  Key:    [cyan]{current_key}[/]")
+        if current_provider:
+            console.print(f"  Provider: [cyan]{current_provider}[/]")
+        console.print()
+    else:
+        console.print("[dim]No config found — let's set one up[/dim]\n")
+
+    # Interactive provider selection
+    if not provider:
+        console.print("[bold]Available providers:[/]\n")
+        providers = list(PROVIDERS.keys())
+        for i, p in enumerate(providers, 1):
+            info = PROVIDERS[p]
+            console.print(f"  [cyan]{i}.[/] {info['label']}")
+        console.print()
+
+        choice = typer.prompt("Select provider", type=int, default=1)
+        if choice < 1 or choice > len(providers):
+            err_console.print("[red]Invalid choice[/red]")
+            raise typer.Exit(1)
+        provider = providers[choice - 1]
+
+    if provider not in PROVIDERS:
+        err_console.print(f"[red]Unknown provider:[/red] {provider}")
+        err_console.print(f"Available: {', '.join(PROVIDERS.keys())}")
+        raise typer.Exit(1)
+
+    info = PROVIDERS[provider]
+
+    # Model selection
+    if not model:
+        model = typer.prompt("Model", default=info["model"])
+
+    # API key input
+    if not api_key:
+        console.print(f"\n[dim]Get your API key from the provider's dashboard[/dim]")
+        api_key = typer.prompt(f"{info['env_key']}")
+
+    if not api_key.strip():
+        err_console.print("[red]API key cannot be empty[/red]")
+        raise typer.Exit(1)
+
+    # Save config
+    settings = {
+        "FP_MODEL": model,
+        info["env_key"]: api_key.strip(),
+    }
+
+    # Add regional endpoint for Chinese providers
+    if provider in ("minimax",):
+        settings["MINIMAX_API_BASE"] = "https://api.minimax.io/v1"
+    elif provider == "xiaomi_mimo":
+        settings["XIAOMI_MIMO_API_BASE"] = "https://api.xiaomi.com/v1"
+
+    saved_path = save_user_config(settings)
+
+    # Also load into current env so verification works immediately
+    for k, v in settings.items():
+        os.environ[k] = v
+
+    console.print(f"\n[bold green]✓[/] Config saved to [cyan]{saved_path}[/cyan]")
+    console.print(f"  Model: [yellow]{model}[/]")
+    console.print(f"  Key:   {api_key.strip()[:8]}...{api_key.strip()[-4:]}")
+    console.print(f"\n[dim]Works from any directory — no .env file needed[/dim]")
+    console.print("\nVerify: [bold]fp status[/]")
+
+    # Quick verification
+    from fp.llm import validate_model
+    validate_model(model)
 
 
 @app.command()

@@ -95,6 +95,16 @@ fp status
 
 Kalau muncul warning `⚠ FP_MODEL='...' requires ..._API_KEY`, berarti API key belum diset.
 
+> **Tip:** Kalau API key mengandung karakter spesial (`/`, newline, dll), jangan pakai `sed`. Pakai Python:
+> ```bash
+> python3 -c "
+> path = '.env'
+> with open(path) as f: c = f.read()
+> key = input('Paste key: ').strip()
+> with open(path, 'w') as f: f.write(c.replace('YOUR_KEY_HERE', key))
+> "
+> ```
+
 ### Supported Providers
 
 | Provider | FP_MODEL value | API Key Env Var |
@@ -142,6 +152,18 @@ fp export json
 ### MCP Server
 
 focus-prompt bisa dijalankan sebagai MCP server — terintegrasi langsung di AI editor seperti OpenCode, Claude Code, atau Cursor.
+
+> **Set API key via terminal** (jangan pakai `sed` kalau key ada karakter spesial):
+> ```bash
+> python3 -c "
+> import json, os
+> path = os.path.expanduser('~/.config/opencode/opencode.jsonc')
+> with open(path) as f: c = f.read()
+> key = input('Paste MINIMAX_API_KEY: ').strip()
+> with open(path, 'w') as f: f.write(c.replace('your-key-here', key))
+> print('Done!')
+> "
+> ```
 
 #### OpenCode
 

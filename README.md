@@ -139,14 +139,16 @@ fp research
 # 3. Discover — problem discovery + focus clusters
 fp discover
 
-# 4. Generate prompts
+# 4. Generate prompts (auto-sanitizes non-Latin chars)
 fp prompt-generate
+# Or skip sanitization: fp prompt-generate --no-sanitize
 
 # 5. Score
 fp score
 
-# 6. Export
+# 6. Export (JSON or CSV)
 fp export json
+fp export csv
 ```
 
 ### MCP Server
@@ -247,9 +249,9 @@ Restart editor setelah ganti config.
 | `fp init` | Init brand project baru |
 | `fp research` | Fetch real queries dari Google Autocomplete |
 | `fp discover` | Problem discovery + focus clustering (LLM) |
-| `fp prompt-generate` | Generate prompt variants |
+| `fp prompt-generate` | Generate prompt variants (auto-sanitize non-Latin chars; `--no-sanitize` to skip) |
 | `fp score` | Score prompts untuk relevance |
-| `fp export json\|csv` | Export hasil |
+| `fp export json\|csv` | Export hasil (JSON file or CSV file) |
 | `fp status` | Status project |
 | `fp focus-list` | List semua focuses |
 | `fp prompt-list` | List prompts (filter: `--focus`, `--mode`, `--review`) |
@@ -268,7 +270,7 @@ Restart editor setelah ganti config.
 ## Pipeline
 
 ```
-init → research → discover → prompt-generate → score → export
+init → research → discover → prompt-generate (auto-sanitize) → score → export (csv)
 ```
 
 ## MCP Tools
@@ -278,9 +280,9 @@ init → research → discover → prompt-generate → score → export
 | `fp_init` | Init brand project |
 | `fp_research` | Fetch real queries dari Google Autocomplete |
 | `fp_discover` | Problem discovery + focus clustering |
-| `fp_generate_prompts` | Generate prompt variants |
+| `fp_generate_prompts` | Generate prompt variants (`sanitize`: auto-fix non-Latin chars) |
 | `fp_score` | Score prompts |
-| `fp_export` | Export data |
+| `fp_export` | Export data (`fmt`: json/csv — CSV returns inline content for download) |
 | `fp_status` | Project status |
 
 ## Models

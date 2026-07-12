@@ -37,7 +37,7 @@ Sanitization (generate/sanitize.py) — auto-fix non-Latin chars via LLM
     ↓ clean prompts (Latin only)
 Relevance Scoring (scoring/scorer.py)
     ↓ list[Focus] with scores + priorities
-Export (output/export.py) — JSON file or CSV (file + inline content for MCP)
+Export (output/export.py) — JSON file or CSV (direct content for MCP, file for CLI)
 Display (output/table.py) — Rich CLI tables
 ```
 

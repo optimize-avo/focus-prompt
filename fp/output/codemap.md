@@ -15,12 +15,12 @@ Handles project data serialization (JSON/CSV export) and CLI table rendering via
 4. `render_prompt_table(focus, mode_filter)` → builds Rich Table with columns: #, Mode, Prompt, Intent, Service, Mention, Score
 
 ## Integration Points
-- **Called by**: `cli.py:export()`, `cli.py:focus_list()`, `cli.py:prompt_list()`, `cli.py:discover()`, `cli.py:prompt_generate()`, `cli.py:score()`
+- **Called by**: `cli.py:export()`, `cli.py:focus_list()`, `cli.py:prompt_list()`, `cli.py:discover()`, `cli.py:prompt_generate()`, `cli.py:score()`, `server.py:fp_export()`
 - **Depends on**: `fp.models.{Focus, ProjectState, PromptMode}`, Rich library
 
 ## Files
 | File | Purpose |
 |------|---------|
 | `__init__.py` | Empty package marker |
-| `export.py` | `export_json()`, `export_csv()` — file serialization |
+| `export.py` | `export_json()`, `export_csv()`, `export_csv_content()` — file serialization + MCP content |
 | `table.py` | `render_focus_table()`, `render_prompt_table()` — Rich CLI tables |

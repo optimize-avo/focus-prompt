@@ -313,11 +313,15 @@ async def fp_score(focus_name: str = "", model: str = "") -> str:
 
 
 @mcp.tool()
-async def fp_export(fmt: str = "json") -> str:
+async def fp_export(fmt: str = "csv") -> str:
     """Export project data.
 
     Args:
-        fmt: Export format — 'json' or 'csv'
+        fmt: Export format — 'csv' (default) or 'json'
+
+    Returns:
+        CSV content directly (copy-paste ready) or JSON path info.
+        CSV is always saved to fp-export.csv in current directory.
     """
     state = _load_state()
     if not state:
@@ -325,17 +329,11 @@ async def fp_export(fmt: str = "json") -> str:
 
     if fmt == "csv":
         csv_content = export_csv_content(state)
-        # Also save to file
+        # Save to file
         output_path = "fp-export.csv"
         export_csv(state, output_path)
-        return json.dumps({
-            "status": "ok",
-            "format": "csv",
-            "path": output_path,
-            "focuses": len(state.focuses),
-            "prompts": sum(len(f.prompts) for f in state.focuses),
-            "csv_content": csv_content,
-        }, indent=2, ensure_ascii=False)
+        # Return CSV directly for easy copy/download
+        return csv_content
     elif fmt == "json":
         output_path = "fp-export.json"
         export_json(state, output_path)
@@ -440,7 +438,7 @@ AI Brand Visibility Research Tool — prediksi dan generate unbranded prompt yan
 
 ## Pipeline
 ```
-init → research → discover → prompt-generate (auto-sanitize) → score → export (csv inline)
+init → research → discover → prompt-generate (auto-sanitize) → score → export (csv default, copy-paste ready)
 ```
 
 ## Model Configuration
@@ -475,7 +473,7 @@ Model-agnostic via LiteLLM — supports 100+ providers.
 | `fp_discover` | Problem discovery + focus clustering (LLM) | `model` |
 | `fp_generate_prompts` | Generate prompt variants per focus | `focus_name` (optional filter), `mode`, `model`, `sanitize` (auto-fix non-Latin chars) |
 | `fp_score` | Score prompts untuk brand relevance | `focus_name` (optional filter), `model` |
-| `fp_export` | Export data (CSV returns content inline for download) | `fmt` (json/csv) |
+| `fp_export` | Export data — CSV (default, copy-paste ready) or JSON | `fmt` (csv/json, default: csv) |
 | `fp_status` | Project status | — |
 
 ## MCP Resources
@@ -494,7 +492,7 @@ Model-agnostic via LiteLLM — supports 100+ providers.
 3. fp_discover — problem discovery + focus clusters
 4. fp_generate_prompts — generate prompt variants
 5. fp_score — score relevance
-6. fp_export — export hasil
+6. fp_export — export CSV (default, copy-paste ready) atau JSON
 ```
 
 ## CLI Commands

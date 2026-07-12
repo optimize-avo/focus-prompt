@@ -25,6 +25,7 @@ Override any endpoint via provider-specific env vars:
 """
 from __future__ import annotations
 
+import json
 import os
 
 from dotenv import load_dotenv
@@ -162,3 +163,36 @@ def completion(
         temperature=temperature,
         **kwargs,
     )
+
+
+def completion_json(
+    model: str = "",
+    messages: list[dict] | None = None,
+    temperature: float = 0.7,
+    retries: int = 3,
+    **kwargs,
+) -> dict:
+    """Call LLM and return parsed JSON dict. Retries on parse failure.
+
+    Some providers (MiniMax, DeepSeek) occasionally return malformed JSON
+    even with response_format=json_object. This retries up to `retries` times.
+    """
+    import sys
+    last_err = None
+    for attempt in range(retries):
+        try:
+            resp = completion(
+                model=model,
+                messages=messages,
+                response_format={"type": "json_object"},
+                temperature=temperature,
+                **kwargs,
+            )
+            raw = resp.choices[0].message.content
+            return json.loads(extract_json(raw))
+        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            last_err = e
+            if attempt < retries - 1:
+                print(f"  ⚠ JSON parse failed (attempt {attempt + 1}/{retries}): {e}", file=sys.stderr)
+                continue
+    raise last_err

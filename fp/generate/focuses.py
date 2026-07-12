@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from fp.llm import completion, extract_json
+from fp.llm import completion_json
 from fp.models import Brand, Focus
 
 
@@ -37,7 +37,7 @@ Rules:
 
 def generate_focuses(brand: Brand, problems: list[dict], model: str = "") -> list[Focus]:
     """Generate focus clusters from discovered problems using LLM."""
-    resp = completion(
+    data = completion_json(
         model=model,
         messages=[
             {"role": "system", "content": FOCUS_GENERATION_PROMPT},
@@ -48,18 +48,14 @@ def generate_focuses(brand: Brand, problems: list[dict], model: str = "") -> lis
                 "problems": problems,
             }, indent=2)},
         ],
-        response_format={"type": "json_object"},
         temperature=0.6,
     )
-
-    raw = resp.choices[0].message.content
-    data = json.loads(extract_json(raw))
 
     focuses = []
     for f in data.get("focuses", []):
         focus = Focus(
-            name=f["name"],
-            description=f["description"],
+            name=f.get("name", "Unnamed Focus"),
+            description=f.get("description", ""),
             lens="problem",
             signals=f.get("queries", []),
             signal_count=len(f.get("queries", [])),

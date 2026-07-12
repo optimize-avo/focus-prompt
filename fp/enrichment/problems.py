@@ -7,7 +7,7 @@ from typing import Optional
 
 import httpx
 
-from fp.llm import completion, extract_json
+from fp.llm import completion_json
 from fp.models import Brand
 
 
@@ -51,7 +51,7 @@ def discover_problems(brand: Brand, model: str = "") -> list[dict]:
     """Use LLM to discover real user problems around brand's service categories."""
     categories_str = ", ".join(brand.service_categories) if brand.service_categories else brand.description
 
-    resp = completion(
+    data = completion_json(
         model=model,
         messages=[
             {"role": "system", "content": PROBLEM_DISCOVERY_PROMPT},
@@ -62,12 +62,8 @@ def discover_problems(brand: Brand, model: str = "") -> list[dict]:
                 "competitors": brand.competitors,
             }, indent=2)},
         ],
-        response_format={"type": "json_object"},
         temperature=0.7,
     )
-
-    raw = resp.choices[0].message.content
-    data = json.loads(extract_json(raw))
     return data.get("problems", [])
 
 
@@ -158,16 +154,12 @@ async def discover_problems_enriched(
         },
     }
 
-    resp = completion(
+    data = completion_json(
         model=model,
         messages=[
             {"role": "system", "content": ENRICHED_DISCOVERY_PROMPT},
             {"role": "user", "content": json.dumps(real_data_context, indent=2, ensure_ascii=False)},
         ],
-        response_format={"type": "json_object"},
         temperature=0.5,
     )
-
-    raw = resp.choices[0].message.content
-    data = json.loads(extract_json(raw))
     return data.get("problems", [])

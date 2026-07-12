@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from fp.llm import completion, extract_json
+from fp.llm import completion_json
 from fp.models import Brand, Focus, PromptMode, Prompt, PromptIntent, ScoredPrompt
 
 
@@ -75,18 +75,14 @@ def _call_prompt_gen(
 
     system_msg = prompt_template.format(brand_name=brand.name)
 
-    resp = completion(
+    data = completion_json(
         model=model,
         messages=[
             {"role": "system", "content": system_msg},
             {"role": "user", "content": json.dumps(focus_input, indent=2)},
         ],
-        response_format={"type": "json_object"},
         temperature=0.8,
     )
-
-    raw = resp.choices[0].message.content
-    data = json.loads(extract_json(raw))
     if isinstance(data, dict):
         return data.get("prompts", [])
     return data
@@ -105,7 +101,7 @@ def generate_prompts_for_focus(
         unbranded = _call_prompt_gen(brand, focus, UNBRANDED_PROMPT_PROMPT, model=model)
         for p in unbranded:
             all_prompts.append(ScoredPrompt(
-                text=p["text"],
+                text=p.get("text", ""),
                 intent=PromptIntent(p.get("intent", "info")),
                 mode=PromptMode.UNBRANDED,
                 focus_name=focus.name,
@@ -116,7 +112,7 @@ def generate_prompts_for_focus(
         branded = _call_prompt_gen(brand, focus, BRANDED_PROMPT_PROMPT, model=model)
         for p in branded:
             all_prompts.append(ScoredPrompt(
-                text=p["text"],
+                text=p.get("text", ""),
                 intent=PromptIntent(p.get("intent", "info")),
                 mode=PromptMode.BRANDED,
                 focus_name=focus.name,

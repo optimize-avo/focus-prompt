@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from fp.llm import completion, extract_json
+from fp.llm import completion_json
 from fp.models import Brand, Focus, PromptMode, ScoredPrompt
 
 
@@ -32,7 +32,7 @@ def score_prompt(prompt: ScoredPrompt, brand: Brand, model: str = "") -> ScoredP
     """Score a single prompt for relevance to the brand."""
     system_msg = SCORE_PROMPT.format(brand_name=brand.name)
 
-    resp = completion(
+    data = completion_json(
         model=model,
         messages=[
             {"role": "system", "content": system_msg},
@@ -45,12 +45,8 @@ def score_prompt(prompt: ScoredPrompt, brand: Brand, model: str = "") -> ScoredP
                 "prompt_mode": prompt.mode.value,
             }, indent=2)},
         ],
-        response_format={"type": "json_object"},
         temperature=0.3,
     )
-
-    raw = resp.choices[0].message.content
-    data = json.loads(extract_json(raw))
 
     prompt.service_match = int(data.get("service_match", 50))
     prompt.mention_likelihood = int(data.get("mention_likelihood", 50))

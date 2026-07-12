@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from fp.llm import completion
+from fp.llm import completion, extract_json
 from fp.models import Brand, Focus
 
 
@@ -53,7 +53,7 @@ def generate_focuses(brand: Brand, problems: list[dict], model: str = "") -> lis
     )
 
     raw = resp.choices[0].message.content
-    data = json.loads(raw)
+    data = json.loads(extract_json(raw))
 
     focuses = []
     for f in data.get("focuses", []):

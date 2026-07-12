@@ -7,7 +7,7 @@ from typing import Optional
 
 import httpx
 
-from fp.llm import completion
+from fp.llm import completion, extract_json
 from fp.models import Brand
 
 
@@ -67,7 +67,7 @@ def discover_problems(brand: Brand, model: str = "") -> list[dict]:
     )
 
     raw = resp.choices[0].message.content
-    data = json.loads(raw)
+    data = json.loads(extract_json(raw))
     return data.get("problems", [])
 
 
@@ -169,5 +169,5 @@ async def discover_problems_enriched(
     )
 
     raw = resp.choices[0].message.content
-    data = json.loads(raw)
+    data = json.loads(extract_json(raw))
     return data.get("problems", [])

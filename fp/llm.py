@@ -50,6 +50,44 @@ _REGIONAL_API_BASES: dict[str, str] = {
 }
 
 
+def extract_json(text: str) -> str:
+    """Strip markdown code fences from LLM responses and return raw JSON.
+
+    Some providers (MiniMax, DeepSeek, etc.) wrap JSON in ```json ... ```
+    even when response_format=json_object is requested.
+    Also handles literal control characters (newlines, tabs) inside JSON strings.
+    """
+    import re
+    # Try to extract content from markdown code fences
+    match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", text, re.DOTALL)
+    if match:
+        text = match.group(1).strip()
+    else:
+        text = text.strip()
+
+    # Fix control characters: replace literal newlines/tabs inside JSON strings
+    # with escaped versions. Walk through and track whether we're inside a string.
+    result = []
+    in_string = False
+    i = 0
+    while i < len(text):
+        ch = text[i]
+        if ch == '"' and (i == 0 or text[i - 1] != '\\'):
+            in_string = not in_string
+            result.append(ch)
+        elif in_string and ch == '\n':
+            result.append('\\n')
+        elif in_string and ch == '\t':
+            result.append('\\t')
+        elif in_string and ch == '\r':
+            result.append('\\r')
+        else:
+            result.append(ch)
+        i += 1
+
+    return ''.join(result)
+
+
 def resolve_model(model: str = "") -> str:
     """Resolve model name from explicit arg, env, or default."""
     return model or os.getenv("FP_MODEL", DEFAULT_MODEL)

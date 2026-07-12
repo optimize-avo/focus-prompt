@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from fp.llm import completion
+from fp.llm import completion, extract_json
 from fp.models import Brand, Focus, PromptMode, Prompt, PromptIntent, ScoredPrompt
 
 
@@ -86,7 +86,7 @@ def _call_prompt_gen(
     )
 
     raw = resp.choices[0].message.content
-    data = json.loads(raw)
+    data = json.loads(extract_json(raw))
     if isinstance(data, dict):
         return data.get("prompts", [])
     return data

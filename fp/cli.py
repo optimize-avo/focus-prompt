@@ -153,7 +153,7 @@ def discover(
         web_data = getattr(state, 'web_data', None)
         if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
             console.print("  📡 Using real web research data as ground truth")
-            problems = discover_problems_enriched(brand, web_data, model=model)
+            problems = asyncio.run(discover_problems_enriched(brand, web_data, model=model))
         else:
             console.print("  ⚠ No web data — using LLM-only discovery (run [bold]fp research[/] first for better results)")
             problems = discover_problems(brand, model=model)
@@ -219,6 +219,7 @@ def prompt_generate(
 @app.command()
 def score(
     model: str = typer.Option("", "--model", "-M", help="LLM model (default: env FP_MODEL or gpt-4o-mini)"),
+    focus: str = typer.Option("", "--focus", "-f", help="Score only this focus (substring match)"),
 ):
     """Score all prompts for brand relevance and mention likelihood."""
     state = _load_state()
@@ -229,13 +230,31 @@ def score(
         err_console.print("[red]Error:[/red] No prompts to score. Run [bold]fp prompt generate[/] first.")
         raise typer.Exit(1)
 
-    console.print(f"\n📊 Scoring {total_prompts} prompts for relevance to [cyan]{brand.name}[/]...")
+    targets = state.focuses
+    if focus:
+        targets = [f for f in targets if focus.lower() in f.name.lower()]
+        if not targets:
+            err_console.print(f"[red]Error:[/red] No focus matching '{focus}'")
+            raise typer.Exit(1)
+
+    score_count = sum(len(f.prompts) for f in targets)
+    console.print(f"\n📊 Scoring {score_count} prompts for relevance to [cyan]{brand.name}[/]...")
 
     try:
-        state.focuses = score_all(state.focuses, brand, model=model)
+        scored = score_all(targets, brand, model=model)
     except Exception as e:
         err_console.print(f"[red]Scoring failed:[/red] {e}")
         raise typer.Exit(1)
+
+    # Merge scored results back into full focus list
+    if focus:
+        for i, f in enumerate(state.focuses):
+            for s in scored:
+                if s.name == f.name:
+                    state.focuses[i] = s
+                    break
+    else:
+        state.focuses = scored
 
     _save_state(state)
 

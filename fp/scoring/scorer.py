@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from fp.llm import completion
+from fp.llm import completion, extract_json
 from fp.models import Brand, Focus, PromptMode, ScoredPrompt
 
 
@@ -50,10 +50,10 @@ def score_prompt(prompt: ScoredPrompt, brand: Brand, model: str = "") -> ScoredP
     )
 
     raw = resp.choices[0].message.content
-    data = json.loads(raw)
+    data = json.loads(extract_json(raw))
 
-    prompt.service_match = data.get("service_match", 50)
-    prompt.mention_likelihood = data.get("mention_likelihood", 50)
+    prompt.service_match = int(data.get("service_match", 50))
+    prompt.mention_likelihood = int(data.get("mention_likelihood", 50))
 
     weights = {"service_match": 0.5, "mention_likelihood": 0.5}
     if prompt.mode == PromptMode.UNBRANDED:

@@ -2,9 +2,12 @@
 from __future__ import annotations
 
 import json
+import sys
 
 from fp.llm import completion_json
 from fp.models import Brand, Focus, PromptMode, ScoredPrompt
+
+BATCH_SIZE = 15
 
 
 SCORE_PROMPT = """You are a brand relevance analyst. Given a brand and a user prompt, evaluate:
@@ -25,6 +28,33 @@ Rules:
 - For UNBRANDED prompts, mention_likelihood is the key metric — will the AI even think of this brand?
 - For BRANDED prompts, service_match is the key metric — does the question match what they offer?
 - Be honest — if the brand doesn't fit, score low
+"""
+
+
+BATCH_SCORE_PROMPT = """You are a brand relevance analyst. You will receive a brand and a list of numbered prompts to score for brand relevance.
+
+For EACH prompt, evaluate:
+
+1. service_match (0-100): How well does this prompt match services the brand offers? If the user is looking for something the brand actually sells, score high.
+2. mention_likelihood (0-100): If an AI answers this prompt, how likely is it to mention {brand_name} in the response? Consider: is the brand a relevant answer to this query?
+3. needs_review (true/false): Flag if service_match < 40.
+
+IMPORTANT RULES:
+- Return EXACTLY one score object per input prompt, in the SAME ORDER as the numbered list.
+- For UNBRANDED prompts, mention_likelihood is the key metric — will the AI even think of this brand?
+- For BRANDED prompts, service_match is the key metric — does the question match what they offer?
+- Be honest — if the brand doesn't fit, score low.
+
+Return ONLY a JSON object with this structure:
+{{
+  "scores": [
+    {{"service_match": 85, "mention_likelihood": 72, "reasoning": "Brief explanation", "needs_review": false}},
+    {{"service_match": 60, "mention_likelihood": 45, "reasoning": "Brief explanation", "needs_review": true}},
+    ...
+  ]
+}}
+
+The "scores" array MUST have exactly {count} elements in the same order as the prompts above. No other text.
 """
 
 
@@ -66,14 +96,72 @@ def score_prompt(prompt: ScoredPrompt, brand: Brand, model: str = "") -> ScoredP
     return prompt
 
 
+def score_prompt_batch(prompts: list[ScoredPrompt], brand: Brand, model: str = "") -> list[ScoredPrompt]:
+    """Score a batch of prompts via grouped LLM calls for speed."""
+    scored = []
+    for i in range(0, len(prompts), BATCH_SIZE):
+        batch = prompts[i : i + BATCH_SIZE]
+        try:
+            result = _score_batch(batch, brand, model=model)
+            scored.extend(result)
+        except Exception as exc:
+            print(f"[scorer] batch call failed at offset {i}, falling back to individual: {exc}", file=sys.stderr)
+            for p in batch:
+                scored.append(score_prompt(p, brand, model=model))
+    return scored
+
+
+def _score_batch(batch: list[ScoredPrompt], brand: Brand, model: str = "") -> list[ScoredPrompt]:
+    """Score a single batch (<=BATCH_SIZE) with one LLM call; fall back to individual on error."""
+    system_msg = BATCH_SCORE_PROMPT.format(brand_name=brand.name, count=len(batch))
+
+    numbered_prompts = "\n".join(
+        f"{idx + 1}. [mode={p.mode.value}] [intent={p.intent.value}] {p.text}"
+        for idx, p in enumerate(batch)
+    )
+
+    user_msg = (
+        f"Brand: {brand.name}\n"
+        f"Description: {brand.description}\n"
+        f"Services: {', '.join(brand.service_categories)}\n\n"
+        f"Prompts to score:\n{numbered_prompts}"
+    )
+
+    data = completion_json(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+        temperature=0.3,
+    )
+
+    scores = data.get("scores", [])
+    if not isinstance(scores, list) or len(scores) != len(batch):
+        raise ValueError(f"expected {len(batch)} scores, got {len(scores) if isinstance(scores, list) else type(scores)}")
+
+    for p, s in zip(batch, scores):
+        p.service_match = int(s.get("service_match", 50))
+        p.mention_likelihood = int(s.get("mention_likelihood", 50))
+
+        weights = {"service_match": 0.5, "mention_likelihood": 0.5}
+        if p.mode == PromptMode.UNBRANDED:
+            weights = {"service_match": 0.3, "mention_likelihood": 0.7}
+        elif p.mode == PromptMode.BRANDED:
+            weights = {"service_match": 0.7, "mention_likelihood": 0.3}
+
+        p.overall_score = (
+            p.service_match * weights["service_match"]
+            + p.mention_likelihood * weights["mention_likelihood"]
+        )
+        p.needs_review = s.get("needs_review", False) or p.service_match < 40
+
+    return batch
+
+
 def score_focus(focus: Focus, brand: Brand, model: str = "") -> Focus:
     """Score all prompts in a focus and derive focus-level metrics."""
-    scored_prompts = []
-    for p in focus.prompts:
-        scored = score_prompt(p, brand, model=model)
-        scored_prompts.append(scored)
-
-    focus.prompts = scored_prompts
+    focus.prompts = score_prompt_batch(focus.prompts, brand, model=model)
 
     if focus.prompts:
         avg_service = sum(p.service_match for p in focus.prompts) / len(focus.prompts)

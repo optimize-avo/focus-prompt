@@ -187,6 +187,7 @@ def discover(
 @app.command()
 def prompt_generate(
     model: str = typer.Option("", "--model", "-M", help="LLM model (default: env FP_MODEL or gpt-4o-mini)"),
+    no_sanitize: bool = typer.Option(False, "--no-sanitize", help="Skip non-Latin character sanitization"),
 ):
     """Generate prompt variants for each focus (unbranded-first)."""
     state = _load_state()
@@ -200,7 +201,7 @@ def prompt_generate(
     console.print(f"   Mode: [yellow]{state.config.prompt_mode.value}[/]")
 
     try:
-        updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode, model=model)
+        updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode, model=model, sanitize=not no_sanitize)
     except Exception as e:
         err_console.print(f"[red]Prompt generation failed:[/red] {e}")
         raise typer.Exit(1)

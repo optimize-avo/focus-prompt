@@ -31,7 +31,7 @@ Rules:
 - Vary the phrasing: some casual, some formal, some detailed, some short
 - Vary the intent across prompts for each focus
 - 6-10 prompts per focus
-- Prioritize Indonesian language prompts (mix with English is natural)
+- OUTPUT LANGUAGE: Write prompts ONLY in Bahasa Indonesia or English. NEVER use Chinese characters (汉字), Japanese, Korean, or any non-Latin script except Arabic numerals. If you are unsure about a word, use the Indonesian or English equivalent.
 - Think about different user personas: pemula, expert, bisnis, individual
 """
 
@@ -55,6 +55,7 @@ Rules:
 - Each prompt MUST include the brand name "{brand_name}"
 - 4-6 prompts per focus
 - Varied intent and phrasing
+- OUTPUT LANGUAGE: Write prompts ONLY in Bahasa Indonesia or English. NEVER use Chinese characters (汉字), Japanese, Korean, Cyrillic, Thai, or any non-Latin script except Arabic numerals. If you are unsure about a word, use the Indonesian or English equivalent.
 """
 
 
@@ -127,10 +128,16 @@ def generate_all_prompts(
     focuses: list[Focus],
     mode: PromptMode = PromptMode.UNBRANDED,
     model: str = "",
+    sanitize: bool = True,
 ) -> list[Focus]:
-    """Generate prompts for all focuses in place."""
+    """Generate prompts for all focuses in place, optionally sanitize."""
     import copy
     updated = copy.deepcopy(focuses)
     for focus in updated:
         focus.prompts = generate_prompts_for_focus(brand, focus, mode, model=model)
+
+    if sanitize:
+        from fp.generate.sanitize import sanitize_focuses
+        updated = sanitize_focuses(updated, model=model)
+
     return updated

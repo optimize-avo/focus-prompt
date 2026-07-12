@@ -44,3 +44,31 @@ def export_csv(state: ProjectState, path: str | Path):
             f.write("")
 
     return path
+
+
+def export_csv_content(state: ProjectState) -> str:
+    """Export prompts as CSV string (for MCP download)."""
+    import io
+    output = io.StringIO()
+    rows = []
+    for focus in state.focuses:
+        for prompt in focus.prompts:
+            rows.append({
+                "focus": focus.name,
+                "focus_priority": focus.priority,
+                "prompt": prompt.text,
+                "mode": prompt.mode.value,
+                "intent": prompt.intent.value,
+                "language": prompt.language,
+                "service_match": prompt.service_match,
+                "mention_likelihood": prompt.mention_likelihood,
+                "overall_score": prompt.overall_score,
+                "needs_review": prompt.needs_review,
+            })
+
+    if rows:
+        writer = csv.DictWriter(output, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return output.getvalue()

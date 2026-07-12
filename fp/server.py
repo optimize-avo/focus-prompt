@@ -21,7 +21,7 @@ from fp.models import (
     PromptMode,
 )
 from fp.scoring.scorer import score_all
-from fp.output.export import export_json, export_csv
+from fp.output.export import export_json, export_csv, export_csv_content
 
 mcp = FastMCP("Focus Prompt")
 PROJECT_FILE = "fp-project.json"
@@ -189,6 +189,7 @@ async def fp_generate_prompts(
     focus_name: str = "",
     mode: str = "",
     model: str = "",
+    sanitize: bool = True,
 ) -> str:
     """Generate prompt variants for each focus.
     Requires fp_discover to have been run first.
@@ -214,7 +215,7 @@ async def fp_generate_prompts(
             return json.dumps({"error": f"No focus matching '{focus_name}'"})
 
     try:
-        updated = generate_all_prompts(brand, targets, prompt_mode, model=model)
+        updated = generate_all_prompts(brand, targets, prompt_mode, model=model, sanitize=sanitize)
     except Exception as e:
         return json.dumps({"error": f"Prompt generation failed: {str(e)}"})
 
@@ -322,22 +323,31 @@ async def fp_export(fmt: str = "json") -> str:
     if not state:
         return json.dumps({"error": "No project found. Run fp_init first."})
 
-    output_path = f"fp-export.{fmt}"
-
-    if fmt == "json":
-        export_json(state, output_path)
-    elif fmt == "csv":
+    if fmt == "csv":
+        csv_content = export_csv_content(state)
+        # Also save to file
+        output_path = "fp-export.csv"
         export_csv(state, output_path)
+        return json.dumps({
+            "status": "ok",
+            "format": "csv",
+            "path": output_path,
+            "focuses": len(state.focuses),
+            "prompts": sum(len(f.prompts) for f in state.focuses),
+            "csv_content": csv_content,
+        }, indent=2, ensure_ascii=False)
+    elif fmt == "json":
+        output_path = "fp-export.json"
+        export_json(state, output_path)
+        return json.dumps({
+            "status": "ok",
+            "format": "json",
+            "path": output_path,
+            "focuses": len(state.focuses),
+            "prompts": sum(len(f.prompts) for f in state.focuses),
+        }, indent=2, ensure_ascii=False)
     else:
         return json.dumps({"error": f"Unsupported format: {fmt}. Use json or csv."})
-
-    return json.dumps({
-        "status": "ok",
-        "format": fmt,
-        "path": output_path,
-        "focuses": len(state.focuses),
-        "prompts": sum(len(f.prompts) for f in state.focuses),
-    }, indent=2, ensure_ascii=False)
 
 
 @mcp.tool()
@@ -430,7 +440,7 @@ AI Brand Visibility Research Tool — prediksi dan generate unbranded prompt yan
 
 ## Pipeline
 ```
-init → research → discover → prompt-generate → score → export
+init → research → discover → prompt-generate (auto-sanitize) → score → export (csv inline)
 ```
 
 ## Model Configuration
@@ -463,9 +473,9 @@ Model-agnostic via LiteLLM — supports 100+ providers.
 | `fp_init` | Init brand project | `name`, `description`, `website`, `services` (comma-sep), `competitors` (comma-sep), `mode` (unbranded/branded/both), `language` |
 | `fp_research` | Fetch real queries dari Google Autocomplete | `extra` (comma-seed queries), `include_autocomplete` |
 | `fp_discover` | Problem discovery + focus clustering (LLM) | `model` |
-| `fp_generate_prompts` | Generate prompt variants per focus | `focus_name` (optional filter), `mode`, `model` |
+| `fp_generate_prompts` | Generate prompt variants per focus | `focus_name` (optional filter), `mode`, `model`, `sanitize` (auto-fix non-Latin chars) |
 | `fp_score` | Score prompts untuk brand relevance | `focus_name` (optional filter), `model` |
-| `fp_export` | Export data | `fmt` (json/csv) |
+| `fp_export` | Export data (CSV returns content inline for download) | `fmt` (json/csv) |
 | `fp_status` | Project status | — |
 
 ## MCP Resources
@@ -492,7 +502,7 @@ Model-agnostic via LiteLLM — supports 100+ providers.
 fp init "Brand" --desc "..." --services "s1,s2" --competitors "k1,k2"
 fp research --extra "seed1,seed2"
 fp discover
-fp prompt-generate
+fp prompt-generate [--no-sanitize]
 fp score
 fp export json|csv
 fp status

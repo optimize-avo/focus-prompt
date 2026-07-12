@@ -18,7 +18,7 @@ AI Brand Visibility Research Tool — predicts and generates unbranded prompts t
 |-----------|----------------------|--------------|
 | `fp/` | Root package — CLI, MCP server, Pydantic models, entry points | [View Map](fp/codemap.md) |
 | `fp/enrichment/` | Problem discovery — LLM-based user problem/query analysis per service category | [View Map](fp/enrichment/codemap.md) |
-| `fp/generate/` | Focus clustering + prompt variant generation (unbranded/branded) | [View Map](fp/generate/codemap.md) |
+| `fp/generate/` | Focus clustering + prompt variant generation (unbranded/branded) + LLM sanitization | [View Map](fp/generate/codemap.md) |
 | `fp/output/` | JSON/CSV export + Rich CLI table rendering | [View Map](fp/output/codemap.md) |
 | `fp/scoring/` | LLM-based relevance scoring with mode-weighted metrics + priority classification | [View Map](fp/scoring/codemap.md) |
 
@@ -33,9 +33,12 @@ Focus Clustering (generate/focuses.py)
     ↓ list[Focus] — 4-8 topic clusters
 Prompt Generation (generate/prompts.py)
     ↓ list[Focus] with ScoredPrompts attached
+Sanitization (generate/sanitize.py) — auto-fix non-Latin chars via LLM
+    ↓ clean prompts (Latin only)
 Relevance Scoring (scoring/scorer.py)
     ↓ list[Focus] with scores + priorities
-Export (output/export.py) / Display (output/table.py)
+Export (output/export.py) — JSON file or CSV (file + inline content for MCP)
+Display (output/table.py) — Rich CLI tables
 ```
 
 ## Key Models (`fp/models.py`)

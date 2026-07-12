@@ -28,14 +28,23 @@ from __future__ import annotations
 import json
 import os
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 import litellm
 
 DEFAULT_MODEL = "gpt-4o-mini"
 
-# Auto-load .env from current working directory (searches cwd upward)
-# Works for: package install, repo dev, MCP server — always finds .env in cwd
-load_dotenv()
+# Auto-load .env from current working directory.
+# python-dotenv's default find_dotenv() walks up from this module's __file__,
+# which breaks when installed via pipx (module is in venv, not cwd).
+# Fix: explicitly search from CWD using pathlib.
+from pathlib import Path as _Path
+
+_env_path = _Path.cwd() / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path, override=True)
+else:
+    # Fallback: try default search (works for `pip install -e .` dev mode)
+    load_dotenv()
 
 # Regional API base overrides — Singapore endpoints for Chinese providers.
 # Override any via env var (e.g. MINIMAX_API_BASE=https://custom.endpoint/v1).

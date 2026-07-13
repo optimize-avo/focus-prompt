@@ -437,3 +437,131 @@ File CSV yang bisa dibuka di Excel/Google Sheets:
 - Keduanya bisa digunakan sesuai kebutuhan
 
 ---
+
+## Bagian 9: MCP Server - Integrasi dengan AI Editor
+
+Focus-prompt bisa dijalankan sebagai MCP server — terintegrasi langsung di AI editor seperti OpenCode, Claude Code, atau Cursor.
+
+### 9.1 Konfigurasi MCP Server
+
+**Untuk OpenCode:**
+Tambahkan di `~/.config/opencode/opencode.jsonc`:
+```json
+{
+  "mcp": {
+    "focus-prompt": {
+      "type": "local",
+      "command": ["fp-mcp"],
+      "env": {
+        "FP_MODEL": "minimax/MiniMax-M2.1",
+        "MINIMAX_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+**Untuk Claude Code:**
+Tambahkan di `.claude/settings.json` (project-level) atau `~/.claude.json` (global):
+```json
+{
+  "mcpServers": {
+    "focus-prompt": {
+      "command": "fp-mcp",
+      "env": {
+        "FP_MODEL": "minimax/MiniMax-M2.1",
+        "MINIMAX_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+**Untuk Cursor:**
+Tambahkan di `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "focus-prompt": {
+      "command": "fp-mcp",
+      "env": {
+        "FP_MODEL": "minimax/MiniMax-M2.1",
+        "MINIMAX_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
+```
+
+### 9.2 Setelah Konfigurasi
+
+**Langkah:**
+1. Restart AI editor
+2. Sekarang Anda bisa menggunakan tools focus-prompt langsung dari AI editor
+3. Tools yang tersedia:
+   - `fp_init`: Init brand project
+   - `fp_research`: Fetch real queries dari Google Autocomplete
+   - `fp_discover`: Problem discovery + focus clustering
+   - `fp_generate_prompts`: Generate prompt variants
+   - `fp_score`: Score prompts
+   - `fp_export`: Export data
+   - `fp_status`: Project status
+
+### 9.3 Menggunakan MCP Server
+
+**Cara penggunaan:**
+- Anda bisa menjalankan semua perintah focus-prompt melalui AI editor
+- AI editor akan menggunakan fp-mcp sebagai backend
+- Hasilnya sama persis dengan menggunakan CLI
+
+**Keuntungan:**
+- Tidak perlu buka terminal terpisah
+- Bisa langsung dari AI editor yang sudah Anda gunakan
+- Lebih integrasi dengan workflow development
+
+---
+
+## Bagian 10: Troubleshooting dan FAQ
+
+### 10.1 Masalah Umum dan Solusi
+
+**1. Warning "API Key belum diset"**
+- **Solusi:** Jalankan `fp setup` lagi dan pastikan API key benar
+- **Cek:** Jalankan `fp status` untuk melihat warning lengkap
+
+**2. Error saat connect ke AI provider**
+- **Solusi:**
+  - Cek koneksi internet
+  - Pastikan API key masih valid
+  - Coba provider lain
+  - Periksa kuota API Anda
+
+**3. Hasil tidak muncul setelah perintah**
+- **Solusi:**
+  - Jalankan `fp status` untuk cek status proyek
+  - Pastikan sudah menjalankan langkah sebelumnya secara berurutan
+  - Periksa apakah ada error message
+
+**4. Prompt mengandung karakter aneh**
+- **Solusi:**
+  - Jalankan `fp prompt-generate` lagi (otomatis sanitasi)
+  - Atau gunakan `--no-sanitize` jika ingin tetap asli
+
+### 10.2 FAQ
+
+**Q: Berapa biaya menggunakan focus-prompt?**
+A: Gratis untuk tool-nya. Biaya hanya dari penggunaan API AI (tergantung provider dan jumlah penggunaan).
+
+**Q: Bisa ganti provider di tengah jalan?**
+A: Bisa. Jalankan `fp setup` lagi dan pilih provider baru. Data lama tetap tersimpan.
+
+**Q: Apakah data saya aman?**
+A: Ya. Data tersimpan lokal di komputer Anda. Tidak ada data yang dikirim ke server kami.
+
+**Q: Berapa lama proses analisis?**
+A: Tergantung jumlah data dan provider AI. Biasanya 1-5 menit per langkah.
+
+**Q: Bisa digunakan untuk beberapa brand sekaligus?**
+A: Bisa. Buat folder terpisah untuk setiap brand dan jalankan `fp init` di masing-masing folder.
+
+---

@@ -245,3 +245,104 @@ fp focus-list
 - Semakin akurat masalah, semakin relevan prompt yang dihasilkan
 
 ---
+
+## Bagian 5: Clustering Fokus - Mengelompokkan Topik
+
+Sekarang saatnya mengelompokkan masalah-masalah tadi menjadi topik-topik besar yang saling terkait.
+
+### 5.1 Apa itu Focus
+
+**Penjelasan:**
+Focus adalah kelompok topik yang saling terkait. Biasanya menghasilkan 4-8 topik besar.
+
+**Contoh:**
+Jika industri Anda "digital marketing", mungkin akan muncul focus:
+1. "Content Marketing Strategy"
+2. "SEO Optimization"
+3. "Social Media Management"
+4. "Paid Advertising"
+5. "Email Marketing"
+
+### 5.2 Informasi dalam Setiap Focus
+
+**Setiap focus berisi:**
+- **Nama focus**: Topik utama (misal: "Content Marketing Strategy")
+- **Deskripsi**: Penjelasan singkat tentang topik ini
+- **Perspektif**: Sudut pandang atau pendekatan
+- **Sinyal**: Ciri khas atau tanda-tanda
+- **Skor kecocokan**: Seberapa cocok dengan layanan Anda
+
+### 5.3 Review Focus
+
+**Perintah:**
+```bash
+fp focus-list
+```
+
+**Cara memeriksa:**
+- Periksa apakah pengelompokan sudah tepat
+- Pastikan setiap focus memiliki deskripsi yang jelas
+- Jika ada focus yang kurang tepat, bisa diulang
+
+---
+
+## Bagian 6: Generate Prompt - Membuat Prompt untuk AI
+
+Sekarang saatnya membuat pertanyaan-pertanyaan yang mungkin diketik orang ke AI chatbot.
+
+### 6.1 Menjalankan Perintah Generate
+
+**Perintah:**
+```bash
+fp prompt-generate
+```
+
+**Apa yang terjadi:**
+1. AI membuat berbagai variasi pertanyaan untuk setiap focus
+2. Setiap prompt memiliki intent yang berbeda
+3. Prompt bisa unbranded atau branded
+
+**Apa yang dihasilkan:**
+- Daftar prompt untuk setiap focus
+- Setiap prompt memiliki:
+  - **Teks pertanyaan**: Pertanyaan yang sebenarnya
+  - **Intent**: Tujuan dari pertanyaan (misal: "membandingkan", "mencari solusi")
+  - **Mode**: Unbranded atau branded
+  - **Bahasa**: Indonesia atau Inggris
+
+**Contoh hasil:**
+Untuk focus "Content Marketing Strategy":
+- "Bagaimana cara membuat konten yang menarik untuk bisnis?" (unbranded)
+- "Apa keunggulan Tech Solutions dalam content marketing?" (branded)
+
+### 6.2 Sanitasi Otomatis
+
+**Apa yang terjadi:**
+Sistem secara otomatis memperbaiki karakter non-Latin (misal: karakter Cina/Arab) menjadi Latin.
+
+**Mengapa perlu:**
+Memastikan prompt bisa digunakan di platform manapun tanpa masalah encoding.
+
+**Opsi skip sanitasi:**
+```bash
+fp prompt-generate --no-sanitize
+```
+Gunakan ini jika ingin prompt tetap dalam bahasa asli.
+
+### 6.3 Review Prompt
+
+**Perintah:**
+```bash
+fp prompt-list
+```
+
+**Filter yang tersedia:**
+- `--focus`: Filter berdasarkan focus tertentu
+- `--mode`: Filter unbranded/branded
+- `--review`: Filter yang perlu review manual
+
+**Tips:**
+- Review prompt yang menandai `needs_review: true`
+- Pastikan prompt sudah sesuai dengan brand voice Anda
+
+---

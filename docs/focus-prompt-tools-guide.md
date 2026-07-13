@@ -335,7 +335,7 @@ Untuk focus "Content Marketing Strategy":
 ### 6.2 Sanitasi Otomatis
 
 **Apa yang terjadi:**
-Sistem secara otomatis memperbaiki karakter non-Latin (misal: karakter Cina/Arab) menjadi Latin.
+Sistem secara otomatis memperbaiki karakter non-Latin (misal: karakter Cina/Arab) menjadi Latin menggunakan AI untuk mengganti karakter dengan padanan yang tepat dalam konteks kalimat, bukan sekadar penggantian karakter satu-ke-satu.
 
 **Mengapa perlu:**
 Memastikan prompt bisa digunakan di platform manapun tanpa masalah encoding.
@@ -383,12 +383,14 @@ fp score
 **Kriteria penilaian:**
 1. **Service Match**: Seberapa cocok dengan layanan Anda
 2. **Mention Likelihood**: Kemungkinan prompt ini menyebut brand Anda
-3. **Overall Score**: Skor keseluruhan
+3. **Overall Score**: Skor keseluruhan (dihitung dari kombinasi Service Match dan Mention Likelihood)
+
+**Catatan:** Jika skor Service Match rendah (<40), prompt akan ditandai `needs_review: true` untuk review manual.
 
 **Klasifikasi prioritas:**
-- **High**: Prompt yang sangat relevan dan berpotensi besar
-- **Medium**: Prompt yang cukup relevan
-- **Low**: Prompt yang kurang relevan
+- **High**: Prompt yang sangat relevan (skor kecocokan layanan ≥75)
+- **Medium**: Prompt yang cukup relevan (skor kecocokan layanan ≥55)
+- **Low**: Prompt yang kurang relevan (skor kecocokan layanan <55)
 
 ### 7.2 Review Skor
 
@@ -441,7 +443,7 @@ fp export csv
 **Apa yang dihasilkan:**
 File CSV yang bisa dibuka di Excel/Google Sheets:
 - Baris per prompt
-- Kolom: text, intent, mode, service_match, mention_likelihood, overall_score, needs_review
+- Kolom: focus, focus_priority, prompt, mode, intent, language, service_match, mention_likelihood, overall_score, needs_review
 
 **Kapan menggunakan CSV:**
 - Untuk analisis di Excel/Google Sheets

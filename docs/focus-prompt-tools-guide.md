@@ -152,3 +152,96 @@ Sistem membuat file `fp-project.json` di folder Anda. File ini berisi semua info
 - Jika ingin mengubah informasi brand, edit file ini langsung
 
 ---
+
+## Bagian 3: Riset Awal - Mendapatkan Data dari Google
+
+Sekarang saatnya mengumpulkan pertanyaan nyata yang orang ketik di Google tentang industri Anda.
+
+### 3.1 Menjalankan Perintah Research
+
+**Perintah:**
+```bash
+fp research
+```
+
+**Apa yang terjadi:**
+1. Sistem mengirim query ke Google Autocomplete
+2. Google mengembalikan saran lengkapan otomatis
+3. Data dikumpulkan dan disimpan
+
+**Apa yang didapat:**
+- Daftar pertanyaan yang sering dicari orang
+- Variasi dari pertanyaan tersebut
+- Data ini menjadi bahan untuk langkah selanjutnya
+
+**Contoh hasil:**
+Jika industri Anda "digital marketing", mungkin akan muncul:
+- "cara digital marketing untuk pemula"
+- "jasa digital marketing terbaik"
+- "biaya digital marketing"
+- "tips digital marketing 2024"
+
+### 3.2 Validasi Data
+
+**Perintah:**
+```bash
+fp prompt-list
+```
+
+**Cara memeriksa:**
+- Pastikan data yang masuk relevan dengan industri Anda
+- Periksa apakah ada data yang aneh atau tidak relevan
+- Jika ada masalah, Anda bisa mengulang riset
+
+**Tips:**
+- Riset ini menggunakan data real dari Google
+- Semakin banyak data, semakin akurat analisis selanjutnya
+
+---
+
+## Bagian 4: Penemuan Masalah - Apa yang Dicari Orang
+
+Sekarang saatnya menganalisis pertanyaan-pertanyaan tadi untuk menemukan masalah nyata yang dihadapi orang.
+
+### 4.1 Menjalankan Perintah Discover
+
+**Perintah:**
+```bash
+fp discover
+```
+
+**Apa yang terjadi:**
+1. Sistem mengirim data riset ke AI (LLM) untuk analisis
+2. AI menganalisis semua pertanyaan
+3. AI mengidentifikasi masalah-masalah utama
+4. AI mengelompokkan masalah berdasarkan kategori
+
+**Apa yang dihasilkan:**
+- Daftar masalah yang ditemukan
+- Penjelasan singkat tentang setiap masalah
+- Kategori atau topik terkait
+
+**Contoh hasil:**
+Jika industri Anda "digital marketing", mungkin akan muncul masalah:
+1. "Kesulitan mendapatkan leads berkualitas"
+2. "Budget marketing terbatas"
+3. "Tidak tahu cara mengukur ROI"
+4. "Kompetitor lebih agresif di digital"
+
+### 4.2 Review Hasil
+
+**Perintah:**
+```bash
+fp focus-list
+```
+
+**Cara memeriksa:**
+- Periksa apakah masalah-masalah yang ditemukan relevan
+- Pastikan tidak ada masalah yang terlewat
+- Jika ada masalah yang kurang tepat, bisa diulang
+
+**Tips:**
+- Masalah yang ditemukan akan menjadi dasar untuk generate prompt
+- Semakin akurat masalah, semakin relevan prompt yang dihasilkan
+
+---

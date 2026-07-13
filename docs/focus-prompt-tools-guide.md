@@ -346,3 +346,94 @@ fp prompt-list
 - Pastikan prompt sudah sesuai dengan brand voice Anda
 
 ---
+
+## Bagian 7: Skor Relevansi - Menilai Setiap Prompt
+
+Sekarang saatnya menilai seberapa relevan dan berpotensi menyebut brand Anda setiap prompt.
+
+### 7.1 Menjalankan Perintah Score
+
+**Perintah:**
+```bash
+fp score
+```
+
+**Apa yang terjadi:**
+1. Sistem mengirim setiap prompt ke AI untuk penilaian
+2. AI menilai berdasarkan beberapa kriteria
+3. Skor dan prioritas ditentukan
+
+**Kriteria penilaian:**
+1. **Service Match**: Seberapa cocok dengan layanan Anda
+2. **Mention Likelihood**: Kemungkinan prompt ini menyebut brand Anda
+3. **Overall Score**: Skor keseluruhan
+
+**Klasifikasi prioritas:**
+- **High**: Prompt yang sangat relevan dan berpotensi besar
+- **Medium**: Prompt yang cukup relevan
+- **Low**: Prompt yang kurang relevan
+
+### 7.2 Review Skor
+
+**Perintah:**
+```bash
+fp prompt-list
+```
+
+**Filter yang berguna:**
+- Filter berdasarkan skor atau prioritas
+- Perhatikan prompt yang menandai `needs_review: true`
+
+**Tips:**
+- Fokus pada prompt dengan skor "High" terlebih dahulu
+- Review prompt yang membutuhkan review manual
+- Gunakan skor untuk memprioritaskan action items
+
+---
+
+## Bagian 8: Export Hasil - Mengambil Data
+
+Sekarang saatnya mengambil hasil analisis dalam format yang bisa digunakan.
+
+### 8.1 Export JSON
+
+**Perintah:**
+```bash
+fp export json
+```
+
+**Apa yang dihasilkan:**
+File JSON berisi semua data:
+- Informasi brand
+- Semua focus dengan deskripsi
+- Semua prompt dengan skor
+- Metadata proyek
+
+**Kapan menggunakan JSON:**
+- Untuk integrasi dengan sistem lain
+- Untuk backup data
+- Untuk analisis lebih lanjut dengan tools lain
+
+### 8.2 Export CSV
+
+**Perintah:**
+```bash
+fp export csv
+```
+
+**Apa yang dihasilkan:**
+File CSV yang bisa dibuka di Excel/Google Sheets:
+- Baris per prompt
+- Kolom: text, intent, mode, service_match, mention_likelihood, overall_score, needs_review
+
+**Kapan menggunakan CSV:**
+- Untuk analisis di Excel/Google Sheets
+- Untuk dibagikan ke tim
+- Untuk presentasi
+
+**Tips:**
+- CSV lebih mudah dianalisis di spreadsheet
+- JSON lebih fleksibel untuk integrasi sistem
+- Keduanya bisa digunakan sesuai kebutuhan
+
+---

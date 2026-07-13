@@ -2,7 +2,7 @@
 
 ## Apa itu Focus-Prompt?
 
-Focus-prompt adalah tools AI yang membantu brand Anda muncul di chatbot seperti ChatGPT, Claude, atau Gemini. Tools ini memprediksi dan menghasilkan pertanyaan (prompt) yang mungkin diketik orang ke AI untuk menemukan brand seperti Anda.
+Focus-prompt adalah tools AI yang membantu brand Anda muncul di chatbot seperti ChatGPT, Claude, atau Gemini. Tools ini memprediksi dan menghasilkan pertanyaan (prompt) yang mungkin diketip orang ke AI untuk menemukan brand seperti Anda.
 
 ## Mengapa Ini Penting untuk Brand Anda?
 
@@ -87,5 +87,68 @@ cd my-brand-focus
 - Agar data tidak tercampur dengan proyek lain
 - Memudahkan pengelolaan dan backup
 - Setiap proyek bisa memiliki konfigurasi berbeda
+
+---
+
+## Bagian 2: Memulai Proyek - Inisialisasi Brand
+
+Setelah persiapan selesai, saatnya mendaftarkan brand Anda ke dalam sistem focus-prompt.
+
+### 2.1 Menjalankan Perintah Init
+
+**Perintah:**
+```bash
+fp init "Nama Brand" \
+  --desc "Deskripsi brand" \
+  --url "https://brand.com" \
+  --services "service1, service2" \
+  --competitors "Kompetitor1, Kompetitor2" \
+  --mode unbranded \
+  --lang id
+```
+
+**Penjelasan parameter:**
+- `--desc`: Menjelaskan apa yang brand Anda jual/layani
+- `--url`: Website resmi brand Anda
+- `--services`: Kategori layanan (misal: "digital marketing, SEO, content creation")
+- `--competitors`: Siapa saja kompetitor utama Anda
+- `--mode`: 
+  - `unbranded`: Fokus pada prompt tanpa nama brand (paling umum)
+  - `branded`: Fokus pada prompt yang menyebut nama brand
+  - `both`: Keduanya
+- `--lang`:
+  - `id`: Bahasa Indonesia
+  - `en`: Bahasa Inggris
+
+**Contoh nyata:**
+```bash
+fp init "Tech Solutions Indonesia" \
+  --desc "Perusahaan digital marketing yang membantu UMKM go online" \
+  --url "https://techsolutions.co.id" \
+  --services "digital marketing, SEO, social media management" \
+  --competitors "Digital Agency XYZ, Marketing Pro, Online Success" \
+  --mode unbranded \
+  --lang id
+```
+
+### 2.2 Apa yang Disimpan
+
+**Apa yang terjadi:**
+Sistem membuat file `fp-project.json` di folder Anda. File ini berisi semua informasi brand yang Anda masukkan.
+
+**Isi file:**
+- Informasi brand (nama, deskripsi, website)
+- Daftar layanan yang ditawarkan
+- Daftar kompetitor
+- Konfigurasi mode dan bahasa
+
+**Mengapa penting:**
+- Semua langkah selanjutnya akan menggunakan data dari file ini
+- Anda bisa mengedit file ini kapan saja jika ada perubahan
+- File ini seperti "profil" brand Anda di dalam focus-prompt
+
+**Tips:**
+- Backup file `fp-project.json` secara berkala
+- Jika ingin mengubah informasi brand, edit file ini langsung
 
 ---

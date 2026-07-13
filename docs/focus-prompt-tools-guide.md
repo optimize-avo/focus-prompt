@@ -1,5 +1,22 @@
 # Panduan Lengkap: Cara Kerja Focus-Prompt
 
+## Daftar Isi
+
+1. [Apa itu Focus-Prompt?](#apa-itu-focus-prompt)
+2. [Mengapa Ini Penting untuk Brand Anda?](#mengapa-ini-penting-untuk-brand-anda)
+3. [Bagian 1: Persiapan - Setup Awal](#bagian-1-persiapan---setup-awal)
+4. [Bagian 2: Memulai Proyek - Inisialisasi Brand](#bagian-2-memulai-proyek---inisialisasi-brand)
+5. [Bagian 3: Riset Awal - Mendapatkan Data dari Google](#bagian-3-riset-awal---mendapatkan-data-dari-google)
+6. [Bagian 4: Penemuan Masalah - Apa yang Dicari Orang](#bagian-4-penemuan-masalah---apa-yang-dicari-orang)
+7. [Bagian 5: Clustering Fokus - Mengelompokkan Topik](#bagian-5-clustering-fokus---mengelompokkan-topik)
+8. [Bagian 6: Generate Prompt - Membuat Prompt untuk AI](#bagian-6-generate-prompt---membuat-prompt-untuk-ai)
+9. [Bagian 7: Skor Relevansi - Menilai Setiap Prompt](#bagian-7-skor-relevansi---menilai-setiap-prompt)
+10. [Bagian 8: Export Hasil - Mengambil Data](#bagian-8-export-hasil---mengambil-data)
+11. [Bagian 9: MCP Server - Integrasi dengan AI Editor](#bagian-9-mcp-server---integrasi-dengan-ai-editor)
+12. [Bagian 10: Troubleshooting dan FAQ](#bagian-10-troubleshooting-dan-faq)
+
+---
+
 ## Apa itu Focus-Prompt?
 
 Focus-prompt adalah tools AI yang membantu brand Anda muncul di chatbot seperti ChatGPT, Claude, atau Gemini. Tools ini memprediksi dan menghasilkan pertanyaan (prompt) yang mungkin diketik orang ke AI untuk menemukan brand seperti Anda.
@@ -36,7 +53,7 @@ Seperti memasang aplikasi baru di HP Anda. Setelah terpasang, Anda bisa mengguna
 
 **Tips:**
 - Pastikan Anda sudah install `pipx` terlebih dahulu
-- Jika sudah terinstall, Anda bisa update dengan: `pip install --upgrade focus-prompt`
+- Jika sudah terinstall, Anda bisa update dengan: `pipx upgrade focus-prompt`
 
 ### 1.2 Konfigurasi API Key
 
@@ -179,7 +196,7 @@ Jika industri Anda "digital marketing", mungkin akan muncul:
 - "cara digital marketing untuk pemula"
 - "jasa digital marketing terbaik"
 - "biaya digital marketing"
-- "tips digital marketing 2024"
+- "tips digital marketing 2026"
 
 ### 3.2 Validasi Data
 

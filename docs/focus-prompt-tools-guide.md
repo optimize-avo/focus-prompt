@@ -2,7 +2,7 @@
 
 ## Apa itu Focus-Prompt?
 
-Focus-prompt adalah tools AI yang membantu brand Anda muncul di chatbot seperti ChatGPT, Claude, atau Gemini. Tools ini memprediksi dan menghasilkan pertanyaan (prompt) yang mungkin diketip orang ke AI untuk menemukan brand seperti Anda.
+Focus-prompt adalah tools AI yang membantu brand Anda muncul di chatbot seperti ChatGPT, Claude, atau Gemini. Tools ini memprediksi dan menghasilkan pertanyaan (prompt) yang mungkin diketik orang ke AI untuk menemukan brand seperti Anda.
 
 ## Mengapa Ini Penting untuk Brand Anda?
 

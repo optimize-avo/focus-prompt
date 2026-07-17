@@ -155,5 +155,6 @@ def get_current_config() -> dict[str, str]:
         "TENCENT_API_KEY",
         "XIAOMI_MIMO_API_KEY",
         "XIAOMI_MIMO_API_BASE",
+        "EXA_API_KEY",
     ]
     return {k: os.getenv(k, "") for k in keys}

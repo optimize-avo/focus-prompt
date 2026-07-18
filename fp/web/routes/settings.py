@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import os
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Form
 from fastapi.responses import HTMLResponse
 
-from fp.config import save_user_config, load_user_config
+from fp.config import save_user_config
 
 router = APIRouter()
 
@@ -45,7 +45,7 @@ async def save_settings(
         if api_base:
             base_key = info["env_key"].replace("_API_KEY", "_API_BASE")
             settings[base_key] = api_base
-        elif "base" in info and not api_base:
+        elif "base" in info:
             base_key = info["env_key"].replace("_API_KEY", "_API_BASE")
             settings[base_key] = info["base"]
     elif api_key:

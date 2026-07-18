@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 
 def _make_app():
@@ -38,7 +39,7 @@ def test_index_returns_html_response(mock_get_state):
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
     # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert call_args[0][0] is not None  # request object
+    assert isinstance(call_args[0][0], Request)  # request object
     assert call_args[0][1] == "index.html"
 
 
@@ -54,7 +55,7 @@ def test_index_passes_state_in_context(mock_get_state):
 
     call_args = mock_templates.TemplateResponse.call_args
     # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert call_args[0][0] is not None  # request object
+    assert isinstance(call_args[0][0], Request)  # request object
     assert call_args[0][1] == "index.html"
     context = call_args[0][2]
     assert context["state"] == state_value
@@ -88,7 +89,7 @@ def test_init_page_returns_html_response():
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
     # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert call_args[0][0] is not None  # request object
+    assert isinstance(call_args[0][0], Request)  # request object
     assert call_args[0][1] == "init.html"
 
 
@@ -101,7 +102,7 @@ def test_init_page_passes_request_in_context():
 
     call_args = mock_templates.TemplateResponse.call_args
     # Starlette 1.3+ API: request is first arg, not in context
-    assert call_args[0][0] is not None  # request object
+    assert isinstance(call_args[0][0], Request)  # request object
 
 
 def test_init_page_no_state_or_config():
@@ -146,7 +147,7 @@ def test_pipeline_returns_html_when_state_exists(mock_get_state):
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
     # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert call_args[0][0] is not None  # request object
+    assert isinstance(call_args[0][0], Request)  # request object
     assert call_args[0][1] == "pipeline.html"
 
 
@@ -181,7 +182,7 @@ def test_settings_returns_html_response(mock_get_config):
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
     # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert call_args[0][0] is not None  # request object
+    assert isinstance(call_args[0][0], Request)  # request object
     assert call_args[0][1] == "settings.html"
 
 

@@ -475,7 +475,7 @@ def status():
 
 @app.command()
 def web(
-    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind"),
+    host: str = typer.Option("127.0.0.1", "--host", "-H", help="Host to bind"),
     port: int = typer.Option(8000, "--port", "-p", help="Port to bind"),
 ):
     """Start the web UI."""

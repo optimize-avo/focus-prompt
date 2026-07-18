@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch, AsyncMock
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 
 def _make_app():
@@ -39,7 +40,7 @@ def test_research_tab_returns_html(mock_get_state):
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
     # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert call_args[0][0] is not None  # request object
+    assert isinstance(call_args[0][0], Request)  # request object
     assert call_args[0][1] == "partials/research.html"
 
 
@@ -55,7 +56,7 @@ def test_discover_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] is not None
+    assert isinstance(call_args[0][0], Request)
     assert call_args[0][1] == "partials/discover.html"
 
 
@@ -71,7 +72,7 @@ def test_generate_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] is not None
+    assert isinstance(call_args[0][0], Request)
     assert call_args[0][1] == "partials/generate.html"
 
 
@@ -87,7 +88,7 @@ def test_score_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] is not None
+    assert isinstance(call_args[0][0], Request)
     assert call_args[0][1] == "partials/score.html"
 
 
@@ -103,7 +104,7 @@ def test_export_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] is not None
+    assert isinstance(call_args[0][0], Request)
     assert call_args[0][1] == "partials/export.html"
 
 

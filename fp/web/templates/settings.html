@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Settings — Focus Prompt{% endblock %}
+{% block content %}
+<div class="max-w-xl">
+    <h1 class="text-2xl font-bold mb-6">Settings</h1>
+
+    <form hx-post="/api/settings" hx-target="#settings-result" hx-indicator="#settings-spinner" class="space-y-4 bg-white rounded-lg border border-gray-200 p-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Provider</label>
+            <select name="provider" id="provider-select" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="updateModelPlaceholder()">
+                <option value="openai">OpenAI</option>
+                <option value="minimax" {{ 'selected' if 'MINIMAX' in config else '' }}>MiniMax (Singapore)</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="dashscope">Qwen/Alibaba</option>
+                <option value="xiaomi_mimo">MiMo (Singapore)</option>
+                <option value="zai">Zhipu/GLM</option>
+                <option value="moonshot">Moonshot/Kimi</option>
+                <option value="volcengine">ByteDance/Doubao</option>
+                <option value="tencent">Tencent/Hunyuan</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
+            <input type="text" name="model" value="{{ config.get('FP_MODEL', '') }}" placeholder="e.g. minimax/MiniMax-M2.7" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+            <input type="password" name="api_key" value="" placeholder="Enter API key" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% for key, val in config.items() %}
+                {% if key.endswith('_API_KEY') and val %}
+                <p class="text-xs text-green-600 mt-1">✓ {{ key }} is set</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Custom Endpoint (optional)</label>
+            <input type="url" name="api_base" value="" placeholder="https://api.example.com/v1" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">EXA API Key (for web search)</label>
+            <input type="password" name="exa_key" value="" placeholder="Enter EXA API key" class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            {% if config.get('EXA_API_KEY') %}
+            <p class="text-xs text-green-600 mt-1">✓ EXA_API_KEY is set</p>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Save Settings</button>
+            <span id="settings-spinner" class="htmx-indicator text-sm text-gray-500">Saving...</span>
+        </div>
+    </form>
+
+    <div id="settings-result" class="mt-4"></div>
+</div>
+
+<script>
+function updateModelPlaceholder() {
+    const models = {
+        'openai': 'gpt-4o-mini',
+        'minimax': 'minimax/MiniMax-M2.7',
+        'deepseek': 'deepseek/deepseek-chat',
+        'dashscope': 'dashscope/qwen-max',
+        'xiaomi_mimo': 'xiaomi_mimo/MiMo-7B-RL',
+        'zai': 'zai/glm-4.7',
+        'moonshot': 'moonshot/moonshot-v1-8k',
+        'volcengine': 'volcengine/doubao-seed-1.6',
+        'tencent': 'tencent/deepseek-v4-pro'
+    };
+    const select = document.getElementById('provider-select');
+    const input = document.querySelector('input[name="model"]');
+    input.placeholder = models[select.value] || 'model-name';
+}
+</script>
+{% endblock %}

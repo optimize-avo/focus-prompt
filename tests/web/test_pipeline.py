@@ -38,7 +38,9 @@ def test_research_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "partials/research.html"
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    assert call_args[0][0] is not None  # request object
+    assert call_args[0][1] == "partials/research.html"
 
 
 @patch("fp.web.routes.pipeline.get_state")
@@ -53,7 +55,8 @@ def test_discover_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "partials/discover.html"
+    assert call_args[0][0] is not None
+    assert call_args[0][1] == "partials/discover.html"
 
 
 @patch("fp.web.routes.pipeline.get_state")
@@ -68,7 +71,8 @@ def test_generate_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "partials/generate.html"
+    assert call_args[0][0] is not None
+    assert call_args[0][1] == "partials/generate.html"
 
 
 @patch("fp.web.routes.pipeline.get_state")
@@ -83,7 +87,8 @@ def test_score_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "partials/score.html"
+    assert call_args[0][0] is not None
+    assert call_args[0][1] == "partials/score.html"
 
 
 @patch("fp.web.routes.pipeline.get_state")
@@ -98,7 +103,8 @@ def test_export_tab_returns_html(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "partials/export.html"
+    assert call_args[0][0] is not None
+    assert call_args[0][1] == "partials/export.html"
 
 
 @patch("fp.web.routes.pipeline.get_state")
@@ -114,8 +120,8 @@ def test_tab_routes_pass_state_in_context(mock_get_state):
         response = client.get(f"/pipeline/{step}")
         assert response.status_code == 200
         call_args = mock_templates.TemplateResponse.call_args
-        context = call_args[0][1]
-        assert "request" in context
+        # Starlette 1.3+ API: TemplateResponse(request, name, context)
+        context = call_args[0][2]
         assert context["state"] == state_value
 
 

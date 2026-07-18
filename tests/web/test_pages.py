@@ -37,7 +37,9 @@ def test_index_returns_html_response(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "index.html"
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    assert call_args[0][0] is not None  # request object
+    assert call_args[0][1] == "index.html"
 
 
 @patch("fp.web.routes.pages.get_state")
@@ -51,8 +53,10 @@ def test_index_passes_state_in_context(mock_get_state):
     client.get("/")
 
     call_args = mock_templates.TemplateResponse.call_args
-    context = call_args[0][1]
-    assert "request" in context
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    assert call_args[0][0] is not None  # request object
+    assert call_args[0][1] == "index.html"
+    context = call_args[0][2]
     assert context["state"] == state_value
 
 
@@ -66,7 +70,8 @@ def test_index_passes_none_state_when_no_project(mock_get_state):
     client.get("/")
 
     call_args = mock_templates.TemplateResponse.call_args
-    context = call_args[0][1]
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    context = call_args[0][2]
     assert context["state"] is None
 
 
@@ -82,7 +87,9 @@ def test_init_page_returns_html_response():
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "init.html"
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    assert call_args[0][0] is not None  # request object
+    assert call_args[0][1] == "init.html"
 
 
 def test_init_page_passes_request_in_context():
@@ -93,8 +100,8 @@ def test_init_page_passes_request_in_context():
     client.get("/init")
 
     call_args = mock_templates.TemplateResponse.call_args
-    context = call_args[0][1]
-    assert "request" in context
+    # Starlette 1.3+ API: request is first arg, not in context
+    assert call_args[0][0] is not None  # request object
 
 
 def test_init_page_no_state_or_config():
@@ -105,9 +112,9 @@ def test_init_page_no_state_or_config():
     client.get("/init")
 
     call_args = mock_templates.TemplateResponse.call_args
-    context = call_args[0][1]
-    assert "state" not in context
-    assert "config" not in context
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    # No context arg passed (defaults to None)
+    assert len(call_args[0]) == 2  # only request and name, no context
 
 
 # ── GET /pipeline ──────────────────────────────────────────────────────
@@ -138,7 +145,9 @@ def test_pipeline_returns_html_when_state_exists(mock_get_state):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "pipeline.html"
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    assert call_args[0][0] is not None  # request object
+    assert call_args[0][1] == "pipeline.html"
 
 
 @patch("fp.web.routes.pages.get_state")
@@ -152,7 +161,8 @@ def test_pipeline_passes_state_in_context(mock_get_state):
     client.get("/pipeline")
 
     call_args = mock_templates.TemplateResponse.call_args
-    context = call_args[0][1]
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    context = call_args[0][2]
     assert context["state"] == state_value
 
 
@@ -170,7 +180,9 @@ def test_settings_returns_html_response(mock_get_config):
     assert response.status_code == 200
     mock_templates.TemplateResponse.assert_called_once()
     call_args = mock_templates.TemplateResponse.call_args
-    assert call_args[0][0] == "settings.html"
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    assert call_args[0][0] is not None  # request object
+    assert call_args[0][1] == "settings.html"
 
 
 @patch("fp.web.routes.pages.get_config")
@@ -184,8 +196,8 @@ def test_settings_passes_config_in_context(mock_get_config):
     client.get("/settings")
 
     call_args = mock_templates.TemplateResponse.call_args
-    context = call_args[0][1]
-    assert "request" in context
+    # Starlette 1.3+ API: TemplateResponse(request, name, context)
+    context = call_args[0][2]
     assert context["config"] == config_value
 
 

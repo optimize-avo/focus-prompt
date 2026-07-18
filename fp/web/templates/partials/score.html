@@ -1,0 +1,13 @@
+<div class="space-y-4">
+    <h3 class="font-semibold">Score</h3>
+    <p class="text-sm text-gray-500">Score all prompts for brand relevance and mention likelihood.</p>
+
+    <form hx-post="/api/score" hx-target="#score-result" hx-indicator="#score-spinner">
+        <div class="flex items-center gap-3">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Run Scoring</button>
+            <span id="score-spinner" class="htmx-indicator text-sm text-gray-500">Running...</span>
+        </div>
+    </form>
+
+    <div id="score-result"></div>
+</div>

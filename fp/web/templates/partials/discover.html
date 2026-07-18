@@ -1,0 +1,13 @@
+<div class="space-y-4">
+    <h3 class="font-semibold">Discover</h3>
+    <p class="text-sm text-gray-500">Discover problems and generate focus clusters from LLM + web signals.</p>
+
+    <form hx-post="/api/discover" hx-target="#discover-result" hx-indicator="#discover-spinner">
+        <div class="flex items-center gap-3">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Run Discovery</button>
+            <span id="discover-spinner" class="htmx-indicator text-sm text-gray-500">Running...</span>
+        </div>
+    </form>
+
+    <div id="discover-result"></div>
+</div>

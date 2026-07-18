@@ -1,0 +1,20 @@
+<div class="space-y-4">
+    <h3 class="font-semibold">Export</h3>
+    <p class="text-sm text-gray-500">Export your project data.</p>
+
+    <form hx-post="/api/export" hx-target="#export-result" hx-indicator="#export-spinner">
+        <div class="mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Format</label>
+            <select name="fmt" class="border border-gray-300 rounded px-3 py-2 text-sm">
+                <option value="json">JSON</option>
+                <option value="csv">CSV</option>
+            </select>
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Export</button>
+            <span id="export-spinner" class="htmx-indicator text-sm text-gray-500">Exporting...</span>
+        </div>
+    </form>
+
+    <div id="export-result"></div>
+</div>

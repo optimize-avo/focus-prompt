@@ -1,7 +1,6 @@
 """Shared dependencies for web routes."""
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from fp.models import ProjectState

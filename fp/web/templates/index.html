@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Focus Prompt{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">Dashboard</h1>
+
+    {% if state %}
+    <!-- Project loaded -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">{{ state.config.brand.name }}</h2>
+        <div class="grid grid-cols-3 gap-4 text-sm">
+            <div>
+                <span class="text-gray-500">Description</span>
+                <p class="font-medium">{{ state.config.brand.description or "—" }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500">Website</span>
+                <p class="font-medium">{{ state.config.brand.website or "—" }}</p>
+            </div>
+            <div>
+                <span class="text-gray-500">Mode</span>
+                <p class="font-medium">{{ state.config.prompt_mode.value }}</p>
+            </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-3 gap-4 text-sm">
+            <div class="bg-gray-50 rounded p-3 text-center">
+                <div class="text-2xl font-bold">{{ state.focuses | length }}</div>
+                <div class="text-gray-500">Focuses</div>
+            </div>
+            <div class="bg-gray-50 rounded p-3 text-center">
+                <div class="text-2xl font-bold">{{ state.focuses | map(attribute='prompts') | map('length') | sum }}</div>
+                <div class="text-gray-500">Prompts</div>
+            </div>
+            <div class="bg-gray-50 rounded p-3 text-center">
+                {% set review_count = [] %}
+                {% for f in state.focuses %}
+                    {% for p in f.prompts %}
+                        {% if p.needs_review %}
+                            {% if review_count.append(1) %}{% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+                <div class="text-2xl font-bold">{{ review_count | length }}</div>
+                <div class="text-gray-500">Needs Review</div>
+            </div>
+        </div>
+
+        <div class="mt-4 flex gap-3">
+            <a href="/pipeline" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Continue Pipeline</a>
+        </div>
+    </div>
+
+    {% if state.focuses %}
+    <!-- Focus list -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 class="font-semibold mb-3">Focuses</h3>
+        <div class="space-y-2">
+            {% for focus in state.focuses %}
+            <div class="flex items-center justify-between text-sm py-2 border-b border-gray-100 last:border-0">
+                <div>
+                    <span class="font-medium">{{ focus.name }}</span>
+                    <span class="text-gray-400 ml-2">{{ focus.priority }}</span>
+                </div>
+                <div class="text-gray-500">
+                    {{ focus.prompts | length }} prompts
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No project -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6 text-center">
+        <p class="text-gray-500 mb-4">No project found. Create one to get started.</p>
+        <a href="/init" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">New Project</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

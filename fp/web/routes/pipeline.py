@@ -23,7 +23,7 @@ async def research_tab(request: Request):
     """Research tab partial."""
     templates = request.app.state.templates
     state = get_state()
-    return templates.TemplateResponse("partials/research.html", {"request": request, "state": state})
+    return templates.TemplateResponse(request, "partials/research.html", {"state": state})
 
 
 @router.get("/pipeline/discover", response_class=HTMLResponse)
@@ -31,7 +31,7 @@ async def discover_tab(request: Request):
     """Discover tab partial."""
     templates = request.app.state.templates
     state = get_state()
-    return templates.TemplateResponse("partials/discover.html", {"request": request, "state": state})
+    return templates.TemplateResponse(request, "partials/discover.html", {"state": state})
 
 
 @router.get("/pipeline/generate", response_class=HTMLResponse)
@@ -39,7 +39,7 @@ async def generate_tab(request: Request):
     """Generate tab partial."""
     templates = request.app.state.templates
     state = get_state()
-    return templates.TemplateResponse("partials/generate.html", {"request": request, "state": state})
+    return templates.TemplateResponse(request, "partials/generate.html", {"state": state})
 
 
 @router.get("/pipeline/score", response_class=HTMLResponse)
@@ -47,7 +47,7 @@ async def score_tab(request: Request):
     """Score tab partial."""
     templates = request.app.state.templates
     state = get_state()
-    return templates.TemplateResponse("partials/score.html", {"request": request, "state": state})
+    return templates.TemplateResponse(request, "partials/score.html", {"state": state})
 
 
 @router.get("/pipeline/export", response_class=HTMLResponse)
@@ -55,7 +55,7 @@ async def export_tab(request: Request):
     """Export tab partial."""
     templates = request.app.state.templates
     state = get_state()
-    return templates.TemplateResponse("partials/export.html", {"request": request, "state": state})
+    return templates.TemplateResponse(request, "partials/export.html", {"state": state})
 
 
 # ─── Action Routes (POST) ────────────────────────────────────────────────────

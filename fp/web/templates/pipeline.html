@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Pipeline — Focus Prompt{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-2xl font-bold">Pipeline</h1>
+
+    <!-- Tab bar -->
+    <div class="flex border-b border-gray-200">
+        <button class="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600" hx-get="/api/pipeline/research" hx-target="#pipeline-content" hx-indicator="#pipeline-spinner">Research</button>
+        <button class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" hx-get="/api/pipeline/discover" hx-target="#pipeline-content" hx-indicator="#pipeline-spinner">Discover</button>
+        <button class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" hx-get="/api/pipeline/generate" hx-target="#pipeline-content" hx-indicator="#pipeline-spinner">Generate</button>
+        <button class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" hx-get="/api/pipeline/score" hx-target="#pipeline-content" hx-indicator="#pipeline-spinner">Score</button>
+        <button class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" hx-get="/api/pipeline/export" hx-target="#pipeline-content" hx-indicator="#pipeline-spinner">Export</button>
+    </div>
+
+    <!-- Content area -->
+    <div id="pipeline-content" class="bg-white rounded-lg border border-gray-200 p-6">
+        <span id="pipeline-spinner" class="htmx-indicator text-sm text-gray-500">Loading...</span>
+        <p class="text-gray-500 text-sm">Select a step above to begin.</p>
+    </div>
+</div>
+{% endblock %}

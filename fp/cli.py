@@ -473,5 +473,18 @@ def status():
         render_focus_table(state.focuses)
 
 
+@app.command()
+def web(
+    host: str = typer.Option("127.0.0.1", "--host", "-h", help="Host to bind"),
+    port: int = typer.Option(8000, "--port", "-p", help="Port to bind"),
+):
+    """Start the web UI."""
+    import uvicorn
+    from fp.web.app import create_app
+    console.print(f"\n[bold green]✓[/] Starting web UI at [cyan]http://{host}:{port}[/]")
+    console.print("  Press Ctrl+C to stop\n")
+    uvicorn.run(create_app(), host=host, port=port)
+
+
 if __name__ == "__main__":
     app()

@@ -16,11 +16,7 @@
             <div class="flex items-center gap-3">
                 <button 
                     id="run-all-btn"
-                    hx-post="/api/pipeline/run-all"
-                    hx-ext="sse"
-                    hx-trigger="click"
-                    hx-indicator="#run-all-spinner"
-                    hx-swap="none"
+                    onclick="startRunAll()"
                     class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold rounded-lg shadow-lg shadow-blue-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <svg id="run-all-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,12 +24,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <span id="run-all-text">Run All Phases</span>
-                    <span id="run-all-spinner" class="htmx-indicator">
-                        <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </span>
+                    <svg id="run-all-spinner" class="hidden animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                 </button>
                 <button 
                     id="cancel-run-btn"
@@ -155,9 +149,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-white">Score Results</h2>
                 <button 
-                    hx-get="/api/pipeline/scores" 
-                    hx-target="#score-results-table"
-                    hx-trigger="scoresRefresh from:body"
+                    onclick="loadScoreResults()"
                     class="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                 >
                     Refresh Results
@@ -207,7 +199,6 @@
         activeTab = tabName;
         phases.forEach(phase => {
             const tab = document.getElementById(`tab-${phase}`);
-            const badge = document.getElementById(`badge-${phase}`);
             if (phase === tabName) {
                 tab.className = tab.className
                     .replace('border-transparent', 'border-blue-500')
@@ -223,6 +214,7 @@
         const scoreContainer = document.getElementById('score-results-container');
         if (tabName === 'score') {
             scoreContainer.classList.remove('hidden');
+            loadScoreResults();
         } else {
             scoreContainer.classList.add('hidden');
         }
@@ -233,9 +225,15 @@
         try {
             const response = await fetch('/api/pipeline/status');
             if (response.ok) {
-                const status = await response.json();
-                updatePhaseBadges(status);
-                updateOverallProgress(status);
+                const data = await response.json();
+                updatePhaseBadges(data.status);
+                updateOverallProgress(data.progress);
+                
+                // If pipeline is running, start polling
+                if (data.running && !isRunningAll) {
+                    isRunningAll = true;
+                    startStatusPolling();
+                }
             }
         } catch (e) {
             // Graceful degradation - status endpoint may not exist yet
@@ -288,42 +286,122 @@
     }
 
     // Update overall progress bar
-    function updateOverallProgress(status) {
+    function updateOverallProgress(progress) {
         const progressContainer = document.getElementById('overall-progress-container');
         const progressBar = document.getElementById('overall-progress-bar');
         const progressText = document.getElementById('overall-progress-text');
         
-        if (!status || !status.progress) return;
+        if (!progress) return;
         
         progressContainer.classList.remove('hidden');
-        const percent = Math.round(status.progress.total_percent || 0);
+        const percent = Math.round(progress.total_percent || 0);
         progressBar.style.width = `${percent}%`;
         progressText.textContent = `${percent}%`;
         
         if (percent >= 100) {
             progressBar.classList.remove('from-blue-600', 'to-cyan-500');
             progressBar.classList.add('from-emerald-600', 'to-emerald-400');
+        } else {
+            progressBar.classList.remove('from-emerald-600', 'to-emerald-400');
+            progressBar.classList.add('from-blue-600', 'to-cyan-500');
+        }
+    }
+
+    // Start status polling
+    function startStatusPolling() {
+        if (statusPollInterval) {
+            clearInterval(statusPollInterval);
+        }
+        statusPollInterval = setInterval(fetchPipelineStatus, 1000);
+    }
+
+    // Stop status polling
+    function stopStatusPolling() {
+        if (statusPollInterval) {
+            clearInterval(statusPollInterval);
+            statusPollInterval = null;
+        }
+    }
+
+    // Start run all
+    async function startRunAll() {
+        if (isRunningAll) return;
+        
+        const runBtn = document.getElementById('run-all-btn');
+        const cancelBtn = document.getElementById('cancel-run-btn');
+        const runText = document.getElementById('run-all-text');
+        const runIcon = document.getElementById('run-all-icon');
+        const runSpinner = document.getElementById('run-all-spinner');
+        const phaseInfo = document.getElementById('run-all-phase');
+        const currentPhase = document.getElementById('current-phase-name');
+        
+        // Set running state
+        isRunningAll = true;
+        runBtn.disabled = true;
+        cancelBtn.classList.remove('hidden');
+        runText.textContent = 'Running...';
+        runIcon.classList.add('hidden');
+        runSpinner.classList.remove('hidden');
+        phaseInfo.classList.remove('hidden');
+        currentPhase.textContent = 'Starting...';
+        
+        // Disable phase buttons
+        phases.forEach(phase => {
+            const tab = document.getElementById(`tab-${phase}`);
+            if (tab) tab.disabled = true;
+        });
+        
+        // Start polling
+        startStatusPolling();
+        
+        try {
+            // Start the run-all process
+            const response = await fetch('/api/pipeline/run-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    updateCompletedUI();
+                } else {
+                    console.error('Pipeline failed:', result);
+                }
+            } else {
+                const error = await response.json();
+                console.error('Pipeline error:', error);
+            }
+        } catch (e) {
+            console.error('Network error:', e);
+        } finally {
+            // Wait a bit for final status update
+            setTimeout(() => {
+                fetchPipelineStatus();
+                stopStatusPolling();
+            }, 500);
         }
     }
 
     // Cancel pipeline run
     function cancelPipelineRun() {
-        if (statusPollInterval) {
-            clearInterval(statusPollInterval);
-            statusPollInterval = null;
-        }
+        stopStatusPolling();
         isRunningAll = false;
         
         const runBtn = document.getElementById('run-all-btn');
         const cancelBtn = document.getElementById('cancel-run-btn');
         const runText = document.getElementById('run-all-text');
         const runIcon = document.getElementById('run-all-icon');
+        const runSpinner = document.getElementById('run-all-spinner');
         const phaseInfo = document.getElementById('run-all-phase');
         
         runBtn.disabled = false;
         cancelBtn.classList.add('hidden');
         runText.textContent = 'Run All Phases';
-        runIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+        runIcon.classList.remove('hidden');
+        runSpinner.classList.add('hidden');
         phaseInfo.classList.add('hidden');
         
         // Re-enable phase buttons
@@ -335,82 +413,25 @@
         fetchPipelineStatus();
     }
 
-    // Listen for SSE events from run-all
-    document.addEventListener('htmx:sseMessage', (event) => {
-        const data = event.detail.data;
-        try {
-            const parsed = JSON.parse(data);
-            handlePipelineEvent(parsed);
-        } catch (e) {
-            console.log('Non-JSON SSE event:', data);
-        }
-    });
-
-    // Handle pipeline events
-    function handlePipelineEvent(event) {
-        if (event.type === 'phase_start') {
-            isRunningAll = true;
-            updateRunningUI(event.phase);
-        } else if (event.type === 'phase_complete') {
-            fetchPipelineStatus();
-        } else if (event.type === 'phase_progress') {
-            updatePhaseProgress(event);
-        } else if (event.type === 'run_complete') {
-            isRunningAll = false;
-            updateCompletedUI();
-            fetchPipelineStatus();
-            
-            // Dispatch scores refresh event if score phase completed
-            document.body.dispatchEvent(new Event('scoresRefresh'));
-        } else if (event.type === 'error') {
-            console.error('Pipeline error:', event.message);
-        }
-    }
-
-    // Update UI for running state
-    function updateRunningUI(phase) {
-        const runBtn = document.getElementById('run-all-btn');
-        const cancelBtn = document.getElementById('cancel-run-btn');
-        const runText = document.getElementById('run-all-text');
-        const runIcon = document.getElementById('run-all-icon');
-        const phaseInfo = document.getElementById('run-all-phase');
-        const currentPhase = document.getElementById('current-phase-name');
-        
-        runBtn.disabled = true;
-        cancelBtn.classList.remove('hidden');
-        runText.textContent = 'Running...';
-        runIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>';
-        phaseInfo.classList.remove('hidden');
-        currentPhase.textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
-        
-        // Disable phase buttons during run-all
-        phases.forEach(p => {
-            const tab = document.getElementById(`tab-${p}`);
-            if (tab) tab.disabled = true;
-        });
-        
-        // Mark current phase as running
-        const badge = document.getElementById(`badge-${phase}`);
-        if (badge) {
-            badge.className = 'w-2 h-2 rounded-full bg-blue-500 status-pulse';
-        }
-    }
-
     // Update completed UI
     function updateCompletedUI() {
         const runBtn = document.getElementById('run-all-btn');
         const cancelBtn = document.getElementById('cancel-run-btn');
         const runText = document.getElementById('run-all-text');
         const runIcon = document.getElementById('run-all-icon');
+        const runSpinner = document.getElementById('run-all-spinner');
         const phaseInfo = document.getElementById('run-all-phase');
         const progressContainer = document.getElementById('overall-progress-container');
         const progressBar = document.getElementById('overall-progress-bar');
         const progressText = document.getElementById('overall-progress-text');
         
+        isRunningAll = false;
         runBtn.disabled = false;
         cancelBtn.classList.add('hidden');
         runText.textContent = '✓ All Complete';
         runIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>';
+        runIcon.classList.remove('hidden');
+        runSpinner.classList.add('hidden');
         phaseInfo.classList.add('hidden');
         
         progressBar.style.width = '100%';
@@ -423,29 +444,116 @@
             const tab = document.getElementById(`tab-${phase}`);
             if (tab) tab.disabled = false;
         });
+        
+        // Refresh score results if on score tab
+        if (activeTab === 'score') {
+            loadScoreResults();
+        }
     }
 
-    // Update phase progress
-    function updatePhaseProgress(event) {
-        if (event.progress) {
-            // Update overall progress
-            const progressBar = document.getElementById('overall-progress-bar');
-            const progressText = document.getElementById('overall-progress-text');
-            const percent = Math.round(event.progress.percent || 0);
-            progressBar.style.width = `${percent}%`;
-            progressText.textContent = `${percent}%`;
+    // Load score results
+    async function loadScoreResults() {
+        try {
+            const response = await fetch('/api/pipeline/scores');
+            if (response.ok) {
+                const data = await response.json();
+                renderScoreResults(data);
+            } else {
+                document.getElementById('score-results-table').innerHTML = 
+                    '<div class="text-center py-8 text-slate-400">No scores available yet</div>';
+            }
+        } catch (e) {
+            document.getElementById('score-results-table').innerHTML = 
+                '<div class="text-center py-8 text-slate-400">Error loading scores</div>';
         }
+    }
+
+    // Render score results table
+    function renderScoreResults(data) {
+        const container = document.getElementById('score-results-table');
+        
+        // Update summary
+        const avgScore = data.average || 0;
+        const avgScoreEl = document.getElementById('avg-score');
+        const scoredCountEl = document.getElementById('scored-count');
+        const needsReviewEl = document.getElementById('needs-review-count');
+        
+        avgScoreEl.textContent = avgScore.toFixed(2);
+        avgScoreEl.className = 'text-3xl font-bold ' + getScoreColorClass(avgScore);
+        scoredCountEl.textContent = data.count || 0;
+        needsReviewEl.textContent = data.needs_review || 0;
+        
+        // Render table
+        if (!data.scores || data.scores.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-slate-400">
+                    <svg class="w-10 h-10 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <p>No scores available yet</p>
+                    <p class="text-sm text-slate-500 mt-1">Run the Score phase to see results</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let tableHTML = `
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-700">
+                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Score</th>
+                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Prompt</th>
+                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Intent</th>
+                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Focus</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        data.scores.forEach(score => {
+            const scoreClass = getScoreColorClass(score.score);
+            const scoreBg = getScoreBgClass(score.score);
+            
+            tableHTML += `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
+                    <td class="py-3 px-4">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${scoreBg} ${scoreClass}">
+                            ${score.score.toFixed(2)}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-200 max-w-md truncate" title="${score.prompt}">
+                        ${score.prompt}
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-0.5 rounded bg-slate-700 text-slate-300 text-xs">
+                            ${score.intent}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-400">${score.focus}</td>
+                </tr>
+            `;
+        });
+        
+        tableHTML += '</tbody></table></div>';
+        container.innerHTML = tableHTML;
+    }
+
+    // Get color class based on score
+    function getScoreColorClass(score) {
+        if (score >= 0.6) return 'text-emerald-400';
+        if (score >= 0.3) return 'text-amber-400';
+        return 'text-red-400';
+    }
+
+    // Get background class based on score
+    function getScoreBgClass(score) {
+        if (score >= 0.6) return 'bg-emerald-500/20';
+        if (score >= 0.3) return 'bg-amber-500/20';
+        return 'bg-red-500/20';
     }
 
     // Periodic status refresh
     setInterval(fetchPipelineStatus, 10000);
-
-    // Listen for custom score refresh events
-    document.body.addEventListener('scoresRefresh', () => {
-        const scoreTable = document.getElementById('score-results-table');
-        if (scoreTable) {
-            htmx.trigger(scoreTable, 'refresh');
-        }
-    });
 </script>
 {% endblock %}

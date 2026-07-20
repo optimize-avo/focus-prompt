@@ -258,7 +258,7 @@ async def run_research(request: Request, extra: str = Form("")):
         state.web_data = web_data
         save_state(state)
         stats = web_data["stats"]
-        return HTMLResponse(f'''
+        resp = HTMLResponse(f'''
             <div class="space-y-2">
                 <p class="text-green-600 font-medium">✓ Research complete</p>
                 <p class="text-sm">Autocomplete: {stats["autocomplete_count"]} suggestions</p>
@@ -266,6 +266,8 @@ async def run_research(request: Request, extra: str = Form("")):
                 <p class="text-sm text-gray-500">Sample: {", ".join(web_data["autocomplete"][:5])}</p>
             </div>
         ''')
+        resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "research", "completed": True}})
+        return resp
     except Exception as e:
         return HTMLResponse(f'<p class="text-red-600">Error: {e}</p>')
 

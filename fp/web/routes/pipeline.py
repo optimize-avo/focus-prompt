@@ -352,12 +352,14 @@ async def run_score(request: Request):
         state.focuses = scored
         save_state(state)
         needs_review = sum(1 for f in state.focuses for p in f.prompts if p.needs_review)
-        return HTMLResponse(f'''
+        resp = HTMLResponse(f'''
             <div class="space-y-2">
                 <p class="text-green-600 font-medium">✓ Scoring complete</p>
                 <p class="text-sm text-gray-500">{total_prompts} prompts scored, {needs_review} need review</p>
             </div>
         ''')
+        resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "score", "completed": True}})
+        return resp
     except Exception as e:
         return HTMLResponse(f'<p class="text-red-600">Scoring failed: {e}</p>')
 

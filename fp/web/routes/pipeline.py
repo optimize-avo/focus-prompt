@@ -324,12 +324,14 @@ async def run_generate(request: Request):
         state.focuses = updated
         save_state(state)
         total = sum(len(f.prompts) for f in state.focuses)
-        return HTMLResponse(f'''
+        resp = HTMLResponse(f'''
             <div class="space-y-2">
                 <p class="text-green-600 font-medium">✓ Generated {total} prompts</p>
                 <p class="text-sm text-gray-500">Across {len(state.focuses)} focuses</p>
             </div>
         ''')
+        resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "generate", "completed": True}})
+        return resp
     except Exception as e:
         return HTMLResponse(f'<p class="text-red-600">Generation failed: {e}</p>')
 

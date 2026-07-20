@@ -24,6 +24,9 @@ dependencies = [
 fp = "fp.cli:app"
 fp-mcp = "fp.server:main"
 
+[tool.setuptools.package-data]
+"fp.web" = ["templates/**/*.html"]
+
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"

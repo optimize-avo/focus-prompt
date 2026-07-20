@@ -54,6 +54,11 @@ def _phase_complete_header(phase: str) -> dict[str, str]:
     return {"HX-Trigger": json.dumps({"phaseComplete": {"phase": phase, "completed": True}})}
 
 
+def _sse(event: str, data: str) -> str:
+    """Format a single SSE message."""
+    return f"event: {event}\ndata: {data}\n\n"
+
+
 # ─── Tab Routes (GET) ────────────────────────────────────────────────────────
 
 

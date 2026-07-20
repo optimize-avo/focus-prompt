@@ -2,37 +2,46 @@
 {% block title %}Dashboard — Focus Prompt{% endblock %}
 {% block content %}
 <div class="space-y-6">
-    <h1 class="text-2xl font-bold">Dashboard</h1>
+    <h1 class="text-2xl font-bold text-white">Dashboard</h1>
 
     {% if state %}
     <!-- Project loaded -->
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold mb-4">{{ state.config.brand.name }}</h2>
-        <div class="grid grid-cols-3 gap-4 text-sm">
+    <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-6">
+        <div class="flex items-start justify-between mb-4">
             <div>
-                <span class="text-gray-500">Description</span>
-                <p class="font-medium">{{ state.config.brand.description or "—" }}</p>
+                <h2 class="text-xl font-semibold text-white">{{ state.config.brand.name }}</h2>
+                <p class="text-slate-400 text-sm mt-1">Brand visibility research project</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                {{ state.config.prompt_mode.value | title }}
+            </span>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-6 text-sm mt-6">
+            <div>
+                <span class="text-slate-500 text-xs uppercase tracking-wide">Description</span>
+                <p class="text-slate-200 mt-1">{{ state.config.brand.description or "—" }}</p>
             </div>
             <div>
-                <span class="text-gray-500">Website</span>
-                <p class="font-medium">{{ state.config.brand.website or "—" }}</p>
+                <span class="text-slate-500 text-xs uppercase tracking-wide">Website</span>
+                <p class="text-slate-200 mt-1">{{ state.config.brand.website or "—" }}</p>
             </div>
             <div>
-                <span class="text-gray-500">Mode</span>
-                <p class="font-medium">{{ state.config.prompt_mode.value }}</p>
+                <span class="text-slate-500 text-xs uppercase tracking-wide">Language</span>
+                <p class="text-slate-200 mt-1">{{ state.config.language | upper }}</p>
             </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-3 gap-4 text-sm">
-            <div class="bg-gray-50 rounded p-3 text-center">
-                <div class="text-2xl font-bold">{{ state.focuses | length }}</div>
-                <div class="text-gray-500">Focuses</div>
+        <div class="mt-6 grid grid-cols-3 gap-4">
+            <div class="bg-slate-700/50 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-white">{{ state.focuses | length }}</div>
+                <div class="text-slate-400 text-sm">Focuses</div>
             </div>
-            <div class="bg-gray-50 rounded p-3 text-center">
-                <div class="text-2xl font-bold">{{ state.focuses | map(attribute='prompts') | map('length') | sum }}</div>
-                <div class="text-gray-500">Prompts</div>
+            <div class="bg-slate-700/50 rounded-lg p-4 text-center">
+                <div class="text-3xl font-bold text-white">{{ state.focuses | map(attribute='prompts') | map('length') | sum }}</div>
+                <div class="text-slate-400 text-sm">Prompts</div>
             </div>
-            <div class="bg-gray-50 rounded p-3 text-center">
+            <div class="bg-slate-700/50 rounded-lg p-4 text-center">
                 {% set review_count = [] %}
                 {% for f in state.focuses %}
                     {% for p in f.prompts %}
@@ -41,29 +50,100 @@
                         {% endif %}
                     {% endfor %}
                 {% endfor %}
-                <div class="text-2xl font-bold">{{ review_count | length }}</div>
-                <div class="text-gray-500">Needs Review</div>
+                <div class="text-3xl font-bold text-yellow-400">{{ review_count | length }}</div>
+                <div class="text-slate-400 text-sm">Needs Review</div>
             </div>
         </div>
 
-        <div class="mt-4 flex gap-3">
-            <a href="/pipeline" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">Continue Pipeline</a>
+        <div class="mt-6 flex gap-3">
+            <a href="/pipeline" class="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                </svg>
+                Continue Pipeline
+            </a>
         </div>
     </div>
 
+    <!-- Score Summary Card (if scores exist) -->
+    {% set scored_prompts = [] %}
+    {% set total_scores = [] %}
+    {% for f in state.focuses %}
+        {% for p in f.prompts %}
+            {% if p.overall_score is defined and p.overall_score > 0 %}
+                {% if scored_prompts.append(p) %}{% endif %}
+                {% if total_scores.append(p.overall_score) %}{% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+    
+    {% if scored_prompts | length > 0 %}
+    {% set avg_score = total_scores | sum / total_scores | length %}
+    <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-xl flex items-center justify-center
+                    {% if avg_score >= 0.6 %}bg-emerald-500/20 text-emerald-400
+                    {% elif avg_score >= 0.3 %}bg-amber-500/20 text-amber-400
+                    {% else %}bg-red-500/20 text-red-400{% endif %}">
+                    <span class="text-2xl font-bold">{{ "%.2f" | format(avg_score) }}</span>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white">Score Summary</h3>
+                    <p class="text-slate-400 text-sm">
+                        {{ scored_prompts | length }} prompts scored · 
+                        {% if avg_score >= 0.6 %}
+                        <span class="text-emerald-400">Strong performance</span>
+                        {% elif avg_score >= 0.3 %}
+                        <span class="text-amber-400">Moderate performance</span>
+                        {% else %}
+                        <span class="text-red-400">Needs improvement</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <a href="/pipeline" class="flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
+                View Results
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </a>
+        </div>
+        
+        <!-- Mini score distribution -->
+        <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+            <span class="text-red-400">●</span> {{ (scored_prompts | selectattr('overall_score', 'lt', 0.3) | list) | length }} low
+            <span class="mx-1">·</span>
+            <span class="text-amber-400">●</span> {{ (scored_prompts | selectattr('overall_score', 'ge', 0.3) | selectattr('overall_score', 'lt', 0.6) | list) | length }} medium
+            <span class="mx-1">·</span>
+            <span class="text-emerald-400">●</span> {{ (scored_prompts | selectattr('overall_score', 'ge', 0.6) | list) | length }} high
+        </div>
+    </div>
+    {% endif %}
+
     {% if state.focuses %}
     <!-- Focus list -->
-    <div class="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 class="font-semibold mb-3">Focuses</h3>
+    <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-6">
+        <h3 class="font-semibold text-white mb-4">Focuses</h3>
         <div class="space-y-2">
             {% for focus in state.focuses %}
-            <div class="flex items-center justify-between text-sm py-2 border-b border-gray-100 last:border-0">
-                <div>
-                    <span class="font-medium">{{ focus.name }}</span>
-                    <span class="text-gray-400 ml-2">{{ focus.priority }}</span>
+            <div class="flex items-center justify-between text-sm py-3 px-4 rounded-lg hover:bg-slate-700/30 transition-colors border border-slate-700/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-slate-700 flex items-center justify-center text-slate-300 font-medium">
+                        {{ focus.name[0] | upper }}
+                    </div>
+                    <div>
+                        <span class="font-medium text-white">{{ focus.name }}</span>
+                        <span class="text-slate-500 ml-2 text-xs">{{ focus.priority }}</span>
+                    </div>
                 </div>
-                <div class="text-gray-500">
-                    {{ focus.prompts | length }} prompts
+                <div class="flex items-center gap-4 text-slate-400">
+                    <span>{{ focus.prompts | length }} prompts</span>
+                    {% if focus.service_match_score is defined and focus.service_match_score > 0 %}
+                    <span class="text-xs px-2 py-0.5 rounded bg-slate-700">
+                        {{ "%.0f" | format(focus.service_match_score * 100) }}% match
+                    </span>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -73,9 +153,18 @@
 
     {% else %}
     <!-- No project -->
-    <div class="bg-white rounded-lg border border-gray-200 p-6 text-center">
-        <p class="text-gray-500 mb-4">No project found. Create one to get started.</p>
-        <a href="/init" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">New Project</a>
+    <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-12 text-center">
+        <svg class="w-16 h-16 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+        </svg>
+        <p class="text-slate-400 mb-2">No project found</p>
+        <p class="text-slate-500 text-sm mb-6">Create a new project to start generating prompts.</p>
+        <a href="/init" class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            New Project
+        </a>
     </div>
     {% endif %}
 </div>

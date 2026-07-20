@@ -1,8 +1,11 @@
 """HTMX partial routes for pipeline steps."""
 from __future__ import annotations
 
+import json
+from typing import AsyncGenerator
+
 from fastapi import APIRouter, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 
 from fp.web.deps import get_state, save_state
 from fp.research.web import research_queries
@@ -11,8 +14,44 @@ from fp.generate.focuses import generate_focuses
 from fp.generate.prompts import generate_all_prompts
 from fp.scoring.scorer import score_all
 from fp.output.export import export_json, export_csv
+from fp.models import ProjectState
 
 router = APIRouter()
+
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+
+def _phase_status(state: ProjectState) -> dict:
+    """Return completion status for each pipeline phase."""
+    has_research = (
+        state.web_data is not None
+        and state.web_data.get("stats", {}).get("total_queries", 0) > 0
+    )
+    has_focuses = len(state.focuses) > 0
+    has_prompts = any(len(f.prompts) > 0 for f in state.focuses)
+    has_scores = any(p.overall_score > 0 for f in state.focuses for p in f.prompts)
+
+    research_count = (
+        state.web_data.get("stats", {}).get("total_queries", 0) if state.web_data else 0
+    )
+    total_focuses = len(state.focuses)
+    total_prompts = sum(len(f.prompts) for f in state.focuses)
+    scored_count = sum(
+        1 for f in state.focuses for p in f.prompts if p.overall_score > 0
+    )
+
+    return {
+        "research": {"completed": has_research, "count": research_count, "total": research_count},
+        "discover": {"completed": has_focuses, "count": total_focuses, "total": total_focuses},
+        "generate": {"completed": has_prompts, "count": total_prompts, "total": total_prompts},
+        "score": {"completed": has_scores, "count": scored_count, "total": total_prompts},
+    }
+
+
+def _phase_complete_header(phase: str) -> dict[str, str]:
+    """Return HX-Trigger header payload for phase completion."""
+    return {"HX-Trigger": json.dumps({"phaseComplete": {"phase": phase, "completed": True}})}
 
 
 # ─── Tab Routes (GET) ────────────────────────────────────────────────────────

@@ -6,28 +6,79 @@
     <title>{% block title %}Focus Prompt{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
     <style>
         .htmx-indicator { display: none; }
         .htmx-request .htmx-indicator { display: inline-block; }
         .htmx-request.htmx-indicator { display: inline-block; }
+        
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* Pulse animation for running state */
+        @keyframes status-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status-pulse { animation: status-pulse 1.5s ease-in-out infinite; }
+        
+        /* Smooth transitions */
+        .tab-transition { transition: all 0.2s ease; }
+        
+        /* Progress bar animation */
+        @keyframes progress-shine {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        .progress-shine {
+            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #3b82f6 100%);
+            background-size: 200% 100%;
+            animation: progress-shine 2s linear infinite;
+        }
     </style>
+    {% block head %}{% endblock %}
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen">
+<body class="bg-slate-900 text-slate-200 min-h-screen font-sans">
     <!-- Nav -->
-    <nav class="bg-white border-b border-gray-200 px-4 py-3">
-        <div class="max-w-5xl mx-auto flex items-center justify-between">
-            <a href="/" class="text-lg font-semibold text-gray-800">Focus Prompt</a>
-            <div class="flex gap-4 text-sm">
-                <a href="/" class="text-gray-600 hover:text-gray-900">Dashboard</a>
-                <a href="/init" class="text-gray-600 hover:text-gray-900">New Project</a>
-                <a href="/pipeline" class="text-gray-600 hover:text-gray-900">Pipeline</a>
-                <a href="/settings" class="text-gray-600 hover:text-gray-900">Settings</a>
+    <nav class="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700/50 px-4 py-3 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 text-lg font-bold text-white">
+                <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Focus Prompt
+            </a>
+            <div class="flex gap-1 text-sm">
+                <a href="/" class="px-3 py-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">Dashboard</a>
+                <a href="/init" class="px-3 py-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">New Project</a>
+                <a href="/pipeline" class="px-3 py-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">Pipeline</a>
+                <a href="/settings" class="px-3 py-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-700/50 transition-colors">Settings</a>
             </div>
         </div>
     </nav>
 
     <!-- Content -->
-    <main class="max-w-5xl mx-auto px-4 py-6">
+    <main class="max-w-6xl mx-auto px-4 py-6">
         {% block content %}{% endblock %}
     </main>
 </body>

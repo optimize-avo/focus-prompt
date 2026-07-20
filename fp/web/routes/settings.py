@@ -69,3 +69,74 @@ async def save_settings(
             ✓ Settings saved. Model: {settings.get("FP_MODEL", "unchanged")}
         </div>
     ''')
+
+
+# ─── Scoring Export Endpoints ─────────────────────────────────────────────────
+
+
+@router.get("/export/scores-csv")
+async def export_scores_csv(request: Request):
+    """Export scored prompts as CSV download."""
+    state = get_state()
+    if not state:
+        return HTMLResponse('<p class="text-red-600">No project found.</p>')
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "focus", "prompt", "brand_answer_snippet", "ai_answer_snippet", "score", "method", "explanation"])
+
+    for focus in state.focuses:
+        for prompt in focus.prompts:
+            if prompt.overall_score > 0:
+                writer.writerow([
+                    f"{focus.name}-{prompt.text[:30]}",
+                    focus.name,
+                    prompt.text,
+                    "",  # brand_answer_snippet (first 200 chars)
+                    "",  # ai_answer_snippet (first 200 chars)
+                    f"{prompt.overall_score:.2f}",
+                    "llm",
+                    f"service_match={prompt.service_match:.0f} mention={prompt.mention_likelihood:.0f}",
+                ])
+
+    content = output.getvalue()
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=scores.csv"},
+    )
+
+
+@router.get("/export/scores-json")
+async def export_scores_json(request: Request):
+    """Export scored prompts as JSON download."""
+    state = get_state()
+    if not state:
+        return HTMLResponse('<p class="text-red-600">No project found.</p>')
+
+    scored = []
+    for focus in state.focuses:
+        for prompt in focus.prompts:
+            if prompt.overall_score > 0:
+                scored.append({
+                    "id": f"{focus.name}-{prompt.text[:30]}",
+                    "focus": focus.name,
+                    "prompt": prompt.text,
+                    "brand_answer": "",
+                    "ai_answer": "",
+                    "score": prompt.overall_score,
+                    "service_match": prompt.service_match,
+                    "mention_likelihood": prompt.mention_likelihood,
+                    "mode": prompt.mode.value,
+                    "intent": prompt.intent.value,
+                    "needs_review": prompt.needs_review,
+                    "method": "llm",
+                    "explanation": f"service_match={prompt.service_match:.0f} mention={prompt.mention_likelihood:.0f}",
+                })
+
+    content = json.dumps(scored, indent=2, ensure_ascii=False)
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=scores.json"},
+    )

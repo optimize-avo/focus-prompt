@@ -97,6 +97,151 @@ async def export_tab(request: Request):
     return templates.TemplateResponse(request, "partials/export.html", {"state": state})
 
 
+# ─── API Routes (JSON) ────────────────────────────────────────────────────────
+
+
+@router.get("/pipeline/status")
+async def pipeline_status(request: Request):
+    """Return completion status for each pipeline phase."""
+    state = get_state()
+    if not state:
+        return {"research": {}, "discover": {}, "generate": {}, "score": {}}
+    return _phase_status(state)
+
+
+@router.get("/pipeline/scores")
+async def pipeline_scores(request: Request):
+    """Return all scored prompts sorted by score ascending (worst first)."""
+    state = get_state()
+    if not state:
+        return []
+
+    scored = []
+    for focus in state.focuses:
+        for prompt in focus.prompts:
+            if prompt.overall_score > 0:
+                scored.append({
+                    "id": f"{focus.name}-{prompt.text[:30]}",
+                    "focus": focus.name,
+                    "prompt": prompt.text,
+                    "brand_answer": "",
+                    "ai_answer": "",
+                    "score": prompt.overall_score,
+                    "method": "llm",
+                    "explanation": f"service_match={prompt.service_match:.0f} mention={prompt.mention_likelihood:.0f}",
+                })
+
+    scored.sort(key=lambda x: x["score"])
+    return scored
+
+
+@router.post("/pipeline/run-all")
+async def run_all_phases(request: Request):
+    """Run all pipeline phases sequentially via SSE stream, skipping completed phases."""
+    state = get_state()
+    if not state:
+        async def _empty():
+            yield {"event": "error", "data": json.dumps({"message": "No project found."})}
+        return StreamingResponse(_empty(), media_type="text/event-stream")
+
+    brand = state.config.brand
+
+    async def generate() -> AsyncGenerator[dict, None]:
+        nonlocal state
+
+        # ── Phase 1: Research ──────────────────────────────────────────
+        status = _phase_status(state)
+        if not status["research"]["completed"]:
+            yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "running"})}
+            try:
+                web_data = await research_queries(brand)
+                state.web_data = web_data
+                save_state(state)
+                yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "completed"})}
+            except Exception as e:
+                yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "error", "message": str(e)})}
+                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "research"})}
+                return
+        else:
+            yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "skipped"})}
+
+        # ── Phase 2: Discover ──────────────────────────────────────────
+        state = get_state()  # reload after save
+        status = _phase_status(state)
+        if not status["discover"]["completed"]:
+            yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "running"})}
+            try:
+                web_data = getattr(state, "web_data", None)
+                if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
+                    problems = await discover_problems_enriched(brand, web_data)
+                else:
+                    problems = discover_problems(brand)
+
+                if not problems:
+                    yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "error", "message": "No problems discovered"})}
+                    yield {"event": "done", "data": json.dumps({"status": "error", "phase": "discover"})}
+                    return
+
+                focuses = generate_focuses(brand, problems)
+                state.focuses = focuses
+                save_state(state)
+                yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "completed"})}
+            except Exception as e:
+                yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "error", "message": str(e)})}
+                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "discover"})}
+                return
+        else:
+            yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "skipped"})}
+
+        # ── Phase 3: Generate ──────────────────────────────────────────
+        state = get_state()
+        status = _phase_status(state)
+        if not status["generate"]["completed"]:
+            yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "running"})}
+            try:
+                if not state.focuses:
+                    yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "error", "message": "No focuses found"})}
+                    yield {"event": "done", "data": json.dumps({"status": "error", "phase": "generate"})}
+                    return
+
+                updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode)
+                state.focuses = updated
+                save_state(state)
+                yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "completed"})}
+            except Exception as e:
+                yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "error", "message": str(e)})}
+                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "generate"})}
+                return
+        else:
+            yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "skipped"})}
+
+        # ── Phase 4: Score ─────────────────────────────────────────────
+        state = get_state()
+        status = _phase_status(state)
+        if not status["score"]["completed"]:
+            yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "running"})}
+            try:
+                if not state.focuses or not any(f.prompts for f in state.focuses):
+                    yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "error", "message": "No prompts to score"})}
+                    yield {"event": "done", "data": json.dumps({"status": "error", "phase": "score"})}
+                    return
+
+                scored = score_all(state.focuses, brand)
+                state.focuses = scored
+                save_state(state)
+                yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "completed"})}
+            except Exception as e:
+                yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "error", "message": str(e)})}
+                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "score"})}
+                return
+        else:
+            yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "skipped"})}
+
+        yield {"event": "done", "data": json.dumps({"status": "completed"})}
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
 # ─── Action Routes (POST) ────────────────────────────────────────────────────
 
 

@@ -7,7 +7,6 @@ from typing import Any
 
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, JSONResponse
-from sse_starlette.sse import EventSourceResponse
 
 from fp.web.deps import get_state, save_state
 from fp.research.web import research_queries
@@ -22,6 +21,7 @@ router = APIRouter()
 # Track pipeline run state
 _pipeline_running = False
 _current_phase = None
+_last_result = None
 
 
 # ─── Helper Functions ────────────────────────────────────────────────────────
@@ -329,13 +329,17 @@ async def run_export(request: Request, fmt: str = Form("json")):
         return HTMLResponse(f'<p class="text-red-400">Export failed: {e}</p>')
 
 
-# ─── Run All Pipeline (POST + SSE) ──────────────────────────────────────────
+# ─── Run All Pipeline (POST) ─────────────────────────────────────────────────
 
 
-@router.post("/pipeline/run-all")
-async def run_all_phases(request: Request):
-    """Run all pipeline phases sequentially via SSE."""
-    global _pipeline_running, _current_phase
+@router.post("/pipeline/run-all", response_class=JSONResponse)
+async def run_all_phases():
+    """Run all pipeline phases sequentially.
+    
+    This endpoint runs the full pipeline and returns the result.
+    The frontend will poll /api/pipeline/status for progress updates.
+    """
+    global _pipeline_running, _current_phase, _last_result
     
     if _pipeline_running:
         return JSONResponse({"error": "Pipeline already running"}, status_code=409)
@@ -345,78 +349,73 @@ async def run_all_phases(request: Request):
         return JSONResponse({"error": "No project found"}, status_code=400)
     
     _pipeline_running = True
+    _last_result = {"phases": [], "success": True}
     
-    async def event_generator():
-        global _pipeline_running, _current_phase
-        
-        phases = ["research", "discover", "generate", "score"]
-        
-        try:
-            for phase in phases:
-                _current_phase = phase
-                yield {
-                    "event": "phase_start",
-                    "data": json.dumps({"phase": phase})
-                }
-                
-                try:
-                    if phase == "research":
-                        # Run research
-                        web_data = await research_queries(state.config.brand)
-                        state.web_data = web_data
+    phases = ["research", "discover", "generate", "score"]
+    
+    try:
+        for phase in phases:
+            _current_phase = phase
+            
+            try:
+                if phase == "research":
+                    # Run research
+                    web_data = await research_queries(state.config.brand)
+                    state.web_data = web_data
+                    save_state(state)
+                    _last_result["phases"].append({"phase": phase, "success": True})
+                    
+                elif phase == "discover":
+                    # Run discover
+                    web_data = getattr(state, "web_data", None)
+                    if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
+                        problems = await discover_problems_enriched(state.config.brand, web_data)
+                    else:
+                        problems = discover_problems(state.config.brand)
+                    
+                    if problems:
+                        focuses = generate_focuses(state.config.brand, problems)
+                        state.focuses = focuses
                         save_state(state)
-                        
-                    elif phase == "discover":
-                        # Run discover
-                        web_data = getattr(state, "web_data", None)
-                        if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
-                            problems = await discover_problems_enriched(state.config.brand, web_data)
-                        else:
-                            problems = discover_problems(state.config.brand)
-                        
-                        if problems:
-                            focuses = generate_focuses(state.config.brand, problems)
-                            state.focuses = focuses
-                            save_state(state)
-                        
-                    elif phase == "generate":
-                        # Run generate
-                        if state.focuses:
-                            updated = generate_all_prompts(state.config.brand, state.focuses, state.config.prompt_mode)
-                            state.focuses = updated
-                            save_state(state)
-                        
-                    elif phase == "score":
-                        # Run score
-                        if state.focuses and sum(len(f.prompts) for f in state.focuses) > 0:
-                            scored = score_all(state.focuses, state.config.brand)
-                            state.focuses = scored
-                            save_state(state)
+                        _last_result["phases"].append({"phase": phase, "success": True})
+                    else:
+                        _last_result["phases"].append({"phase": phase, "success": False, "reason": "no_problems"})
                     
-                    yield {
-                        "event": "phase_complete",
-                        "data": json.dumps({"phase": phase, "success": True})
-                    }
+                elif phase == "generate":
+                    # Run generate
+                    if state.focuses:
+                        updated = generate_all_prompts(state.config.brand, state.focuses, state.config.prompt_mode)
+                        state.focuses = updated
+                        save_state(state)
+                        _last_result["phases"].append({"phase": phase, "success": True})
+                    else:
+                        _last_result["phases"].append({"phase": phase, "success": False, "reason": "no_focuses"})
                     
-                except Exception as e:
-                    yield {
-                        "event": "phase_error",
-                        "data": json.dumps({"phase": phase, "error": str(e)})
-                    }
-                    # Continue to next phase even if one fails
-                    continue
+                elif phase == "score":
+                    # Run score
+                    if state.focuses and sum(len(f.prompts) for f in state.focuses) > 0:
+                        scored = score_all(state.focuses, state.config.brand)
+                        state.focuses = scored
+                        save_state(state)
+                        _last_result["phases"].append({"phase": phase, "success": True})
+                    else:
+                        _last_result["phases"].append({"phase": phase, "success": False, "reason": "no_prompts"})
                 
                 # Small delay between phases for UI feedback
                 await asyncio.sleep(0.1)
-            
-            # All phases complete
-            yield {
-                "event": "run_complete",
-                "data": json.dumps({"success": True})
-            }
-            
-        finally:
-            _pipeline_running = False
-            _current_phase = None
-    
-    return EventSourceResponse(event_generator())
+                
+            except Exception as e:
+                _last_result["phases"].append({"phase": phase, "success": False, "error": str(e)})
+                # Continue to next phase even if one fails
+                continue
+        
+        _last_result["success"] = all(p["success"] for p in _last_result["phases"])
+        
+        return JSONResponse({
+            "success": True,
+            "result": _last_result,
+        })
+        
+    finally:
+        _pipeline_running = False
+        _current_phase = None

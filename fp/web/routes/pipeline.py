@@ -146,35 +146,42 @@ async def run_all_phases(request: Request):
     state = get_state()
     if not state:
         async def _empty():
-            yield {"event": "error", "data": json.dumps({"message": "No project found."})}
+            yield _sse("error", json.dumps({"message": "No project found."}))
         return StreamingResponse(_empty(), media_type="text/event-stream")
 
     brand = state.config.brand
 
-    async def generate() -> AsyncGenerator[dict, None]:
+    async def generate() -> AsyncGenerator[str, None]:
         nonlocal state
+
+        def _phase(event: str, **kwargs) -> str:
+            return _sse("phase", json.dumps(kwargs | {"phase": event}))
+
+        def _done(**kwargs) -> str:
+            return _sse("done", json.dumps(kwargs))
 
         # ── Phase 1: Research ──────────────────────────────────────────
         status = _phase_status(state)
         if not status["research"]["completed"]:
-            yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "running"})}
+            yield _phase("research", status="running")
             try:
                 web_data = await research_queries(brand)
                 state.web_data = web_data
                 save_state(state)
-                yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "completed"})}
+                yield _phase("research", status="completed")
             except Exception as e:
-                yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "error", "message": str(e)})}
-                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "research"})}
+                yield _phase("research", status="error", message=str(e))
+                yield _done(status="error", phase="research")
                 return
         else:
-            yield {"event": "phase", "data": json.dumps({"phase": "research", "status": "skipped"})}
+            yield _phase("research", status="skipped")
 
         # ── Phase 2: Discover ──────────────────────────────────────────
         state = get_state()  # reload after save
+        assert state is not None
         status = _phase_status(state)
         if not status["discover"]["completed"]:
-            yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "running"})}
+            yield _phase("discover", status="running")
             try:
                 web_data = getattr(state, "web_data", None)
                 if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
@@ -183,66 +190,68 @@ async def run_all_phases(request: Request):
                     problems = discover_problems(brand)
 
                 if not problems:
-                    yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "error", "message": "No problems discovered"})}
-                    yield {"event": "done", "data": json.dumps({"status": "error", "phase": "discover"})}
+                    yield _phase("discover", status="error", message="No problems discovered")
+                    yield _done(status="error", phase="discover")
                     return
 
                 focuses = generate_focuses(brand, problems)
                 state.focuses = focuses
                 save_state(state)
-                yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "completed"})}
+                yield _phase("discover", status="completed")
             except Exception as e:
-                yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "error", "message": str(e)})}
-                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "discover"})}
+                yield _phase("discover", status="error", message=str(e))
+                yield _done(status="error", phase="discover")
                 return
         else:
-            yield {"event": "phase", "data": json.dumps({"phase": "discover", "status": "skipped"})}
+            yield _phase("discover", status="skipped")
 
         # ── Phase 3: Generate ──────────────────────────────────────────
         state = get_state()
+        assert state is not None
         status = _phase_status(state)
         if not status["generate"]["completed"]:
-            yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "running"})}
+            yield _phase("generate", status="running")
             try:
                 if not state.focuses:
-                    yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "error", "message": "No focuses found"})}
-                    yield {"event": "done", "data": json.dumps({"status": "error", "phase": "generate"})}
+                    yield _phase("generate", status="error", message="No focuses found")
+                    yield _done(status="error", phase="generate")
                     return
 
                 updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode)
                 state.focuses = updated
                 save_state(state)
-                yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "completed"})}
+                yield _phase("generate", status="completed")
             except Exception as e:
-                yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "error", "message": str(e)})}
-                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "generate"})}
+                yield _phase("generate", status="error", message=str(e))
+                yield _done(status="error", phase="generate")
                 return
         else:
-            yield {"event": "phase", "data": json.dumps({"phase": "generate", "status": "skipped"})}
+            yield _phase("generate", status="skipped")
 
         # ── Phase 4: Score ─────────────────────────────────────────────
         state = get_state()
+        assert state is not None
         status = _phase_status(state)
         if not status["score"]["completed"]:
-            yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "running"})}
+            yield _phase("score", status="running")
             try:
                 if not state.focuses or not any(f.prompts for f in state.focuses):
-                    yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "error", "message": "No prompts to score"})}
-                    yield {"event": "done", "data": json.dumps({"status": "error", "phase": "score"})}
+                    yield _phase("score", status="error", message="No prompts to score")
+                    yield _done(status="error", phase="score")
                     return
 
                 scored = score_all(state.focuses, brand)
                 state.focuses = scored
                 save_state(state)
-                yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "completed"})}
+                yield _phase("score", status="completed")
             except Exception as e:
-                yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "error", "message": str(e)})}
-                yield {"event": "done", "data": json.dumps({"status": "error", "phase": "score"})}
+                yield _phase("score", status="error", message=str(e))
+                yield _done(status="error", phase="score")
                 return
         else:
-            yield {"event": "phase", "data": json.dumps({"phase": "score", "status": "skipped"})}
+            yield _phase("score", status="skipped")
 
-        yield {"event": "done", "data": json.dumps({"status": "completed"})}
+        yield _done(status="completed")
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 

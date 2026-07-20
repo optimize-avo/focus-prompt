@@ -300,12 +300,14 @@ async def run_discover(request: Request):
             f'<li class="text-sm"><strong>{f.name}</strong> — {f.signal_count} signals</li>'
             for f in focuses
         )
-        return HTMLResponse(f'''
+        resp = HTMLResponse(f'''
             <div class="space-y-2">
                 <p class="text-green-600 font-medium">✓ Discovered {len(focuses)} focuses</p>
                 <ul class="list-disc list-inside text-sm text-gray-700">{items}</ul>
             </div>
         ''')
+        resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "discover", "completed": True}})
+        return resp
     except Exception as e:
         return HTMLResponse(f'<p class="text-red-600">Focus generation failed: {e}</p>')
 

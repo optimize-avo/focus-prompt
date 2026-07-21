@@ -43,7 +43,7 @@ OUTPUT FORMAT — Return a JSON object with this exact structure:
 }}
 
 Rules:
-- Queries must be in mix of Indonesian and English (as real users do)
+- {language_instruction}
 - Queries must NOT contain the brand name
 - Queries must reflect real search/ask patterns — what a user would actually type
 - Focus on problem-to-solution queries, not brand-specific queries

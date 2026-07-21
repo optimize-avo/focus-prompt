@@ -5,6 +5,9 @@ import os
 from dataclasses import dataclass
 
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 EXA_API_URL = "https://api.exa.ai/search"

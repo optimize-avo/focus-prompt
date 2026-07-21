@@ -36,7 +36,26 @@ async def pipeline_page(request: Request):
     if not state:
         return RedirectResponse(url="/init", status_code=302)
 
-    context = {"state": state}
+    # Compute step statuses for wizard UI
+    step_statuses = {}
+    if state:
+        # Research
+        step_statuses["research"] = "complete" if (state.web_data and state.web_data.get("stats", {}).get("total_queries", 0) > 0) else "ready"
+        # Discover
+        step_statuses["discover"] = "complete" if state.focuses else ("ready" if state.web_data else "locked")
+        # Generate
+        total_prompts = sum(len(f.prompts) for f in state.focuses)
+        step_statuses["generate"] = "complete" if total_prompts > 0 else ("ready" if state.focuses else "locked")
+        # Score
+        scored = sum(1 for f in state.focuses for p in f.prompts if p.overall_score > 0)
+        step_statuses["score"] = "complete" if (scored > 0 and scored == total_prompts) else ("ready" if total_prompts > 0 else "locked")
+        # Export
+        step_statuses["export"] = "ready" if scored > 0 else "locked"
+    else:
+        for s in ["research", "discover", "generate", "score", "export"]:
+            step_statuses[s] = "locked"
+
+    context = {"state": state, "step_statuses": step_statuses}
     return templates.TemplateResponse(request, "pipeline.html", context)
 
 

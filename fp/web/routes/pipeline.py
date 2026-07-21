@@ -432,3 +432,64 @@ async def run_export(request: Request, fmt: str = Form("json")):
         ''')
     except Exception as e:
         return HTMLResponse(f'<p class="text-red-600">Export failed: {e}</p>')
+
+
+# ─── Keep/Discard/Regenerate Endpoints ──────────────────────────────────────
+
+
+@router.post("/pipeline/step/{step}/keep")
+async def keep_items(request: Request, step: str):
+    """Save which items to keep; discard unchecked items."""
+    state = get_state()
+    if not state:
+        return {"status": "error", "message": "No project found"}
+
+    try:
+        body = await request.json()
+        keep_ids = body.get("keep_ids", [])
+    except Exception:
+        keep_ids = []
+
+    if step == "research":
+        # Research items are queries - mark which to keep in web_data
+        if state.web_data and "queries" in state.web_data:
+            all_queries = state.web_data.get("queries", [])
+            kept = [q for q in all_queries if str(q.get("id", "")) in keep_ids or q.get("text", "") in keep_ids]
+            discarded = len(all_queries) - len(kept)
+            state.web_data["queries"] = kept
+            state.web_data["stats"]["total_queries"] = len(kept)
+            save_state(state)
+            return {"status": "ok", "kept": len(kept), "discarded": discarded}
+
+    elif step == "discover":
+        # Keep only selected focuses
+        all_focuses = state.focuses
+        kept = [f for f in all_focuses if str(f.name) in keep_ids]
+        discarded = len(all_focuses) - len(kept)
+        state.focuses = kept
+        save_state(state)
+        return {"status": "ok", "kept": len(kept), "discarded": discarded}
+
+    elif step == "generate":
+        # Keep only selected prompts per focus
+        keep_set = set(keep_ids)
+        total_kept = 0
+        total_discarded = 0
+        for focus in state.focuses:
+            kept_prompts = []
+            for p in focus.prompts:
+                pid = f"{focus.name}-{p.text[:30]}"
+                if pid in keep_set or p.text in keep_set:
+                    kept_prompts.append(p)
+                    total_kept += 1
+                else:
+                    total_discarded += 1
+            focus.prompts = kept_prompts
+        save_state(state)
+        return {"status": "ok", "kept": total_kept, "discarded": total_discarded}
+
+    elif step == "score":
+        # Scores are derived from prompts - no separate keep needed
+        return {"status": "ok", "kept": 0, "discarded": 0}
+
+    return {"status": "ok", "kept": 0, "discarded": 0}

@@ -69,6 +69,7 @@ def _call_prompt_gen(
     focus: Focus,
     prompt_template: str,
     model: str = "",
+    language: str = "id",
 ) -> list[dict]:
     """Call LLM to generate prompts for a focus."""
     focus_input = {
@@ -79,7 +80,8 @@ def _call_prompt_gen(
         "brand_services": brand.service_categories,
     }
 
-    system_msg = prompt_template.format(brand_name=brand.name)
+    lang_instruction = LANGUAGE_INSTRUCTION.get(language, LANGUAGE_INSTRUCTION["id"])
+    system_msg = prompt_template.format(brand_name=brand.name, language_instruction=lang_instruction)
 
     data = completion_json(
         model=model,

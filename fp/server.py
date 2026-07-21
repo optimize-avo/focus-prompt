@@ -215,7 +215,7 @@ async def fp_generate_prompts(
             return json.dumps({"error": f"No focus matching '{focus_name}'"})
 
     try:
-        updated = generate_all_prompts(brand, targets, prompt_mode, model=model, sanitize=sanitize)
+        updated = generate_all_prompts(brand, targets, prompt_mode, model=model, language=state.config.language, sanitize=sanitize)
     except Exception as e:
         return json.dumps({"error": f"Prompt generation failed: {str(e)}"})
 

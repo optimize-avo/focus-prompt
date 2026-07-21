@@ -219,9 +219,9 @@ async def run_all_phases(request: Request):
             try:
                 web_data = getattr(state, "web_data", None)
                 if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
-                    problems = await discover_problems_enriched(brand, web_data, language=state.config.language)
+                    problems = await discover_problems_enriched(brand, web_data)
                 else:
-                    problems = discover_problems(brand, language=state.config.language)
+                    problems = discover_problems(brand)
 
                 if not problems:
                     yield _phase("discover", status="error", message="No problems discovered")

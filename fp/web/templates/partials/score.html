@@ -1,24 +1,79 @@
-<div class="space-y-4">
-    <h3 class="font-semibold text-white">Score</h3>
-    <p class="text-sm text-slate-400">Score all prompts for brand relevance and mention likelihood.</p>
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h2 class="text-xl font-bold text-white mb-2">Langkah 4: Skor Relevansi</h2>
+        <p class="text-slate-400">Kami akan menilai setiap prompt untuk relevansi dengan brand Anda.</p>
+    </div>
 
-    <form hx-post="/api/score" hx-target="#score-result" hx-indicator="#score-spinner">
-        <div class="flex items-center gap-3">
-            <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Run Scoring
-            </button>
-            <span id="score-spinner" class="htmx-indicator text-sm text-slate-400">
-                <svg class="animate-spin h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Running...
-            </span>
-        </div>
+    {% set scored_prompts = [] %}
+    {% if state and state.focuses %}
+        {% for focus in state.focuses %}
+            {% for prompt in focus.prompts %}
+                {% if prompt.overall_score is defined and prompt.overall_score > 0 %}
+                    {% set _ = scored_prompts.append(prompt) %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
+    {% if scored_prompts|length > 0 %}
+    <!-- Post-Run Results -->
+    <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
+        <p class="text-emerald-400 font-medium mb-2">✓ Scoring selesai!</p>
+        <p class="text-slate-300">
+            📊 <strong>{{ scored_prompts|length }}</strong> prompts scored<br>
+            📈 Average score: <strong>{{ "%.2f"|format(scored_prompts|map(attribute='overall_score')|sum / scored_prompts|length) }}</strong>
+        </p>
+    </div>
+
+    <!-- Top Scores Preview -->
+    <div class="space-y-2">
+        {% for focus in state.focuses %}
+            {% for prompt in focus.prompts %}
+                {% if prompt.overall_score >= 0.7 %}
+                <div class="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg">
+                    <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
+                        {{ "%.2f"|format(prompt.overall_score) }}
+                    </span>
+                    <span class="text-sm text-slate-300 truncate">{{ prompt.text }}</span>
+                </div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    <!-- Review Button -->
+    <button onclick="openScoreModal()"
+            class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
+        📊 Review Hasil Skor
+    </button>
+
+    {% elif state and state.focuses and state.focuses|map(attribute='prompts')|map('length')|sum > 0 %}
+    <!-- Pre-Run UI -->
+    <div class="bg-slate-700/30 rounded-lg p-4">
+        <p class="text-slate-300">Menggunakan <strong>{{ state.focuses|map(attribute='prompts')|map('length')|sum }}</strong> prompts dari langkah sebelumnya.</p>
+    </div>
+
+    <form hx-post="/api/score" hx-target="#step-content" hx-swap="innerHTML">
+        <button type="submit" class="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+            📊 Mulai Scoring
+        </button>
     </form>
-
-    <div id="score-result"></div>
+    {% else %}
+    <p class="text-slate-500 italic">Selesaikan langkah Generate terlebih dahulu.</p>
+    {% endif %}
 </div>
+
+<script>
+function openScoreModal() {
+    fetch('/api/pipeline/step/score/items')
+        .then(r => r.json())
+        .then(data => {
+            Modal.open({
+                title: `Review Scores (${data.total})`,
+                items: data.items.map(i => ({...i, text: `${i.score.toFixed(2)} - ${i.text}`})),
+                onSave: async () => { Modal.close(); }
+            });
+        });
+}
+</script>

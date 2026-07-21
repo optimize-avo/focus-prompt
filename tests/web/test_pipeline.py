@@ -240,13 +240,19 @@ def test_run_discover_with_web_data(mock_gen_focuses, mock_enriched, mock_get_st
     mock_gen_focuses.return_value = [mock_focus]
     mock_enriched.return_value = [{"category": "test", "problems": []}]
 
-    app, _ = _make_app()
+    app, mock_templates = _make_app()
     client = TestClient(app)
 
     response = client.post("/discover")
 
     assert response.status_code == 200
-    assert "Discovered 1 focuses" in response.text
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert call_args[0][1] == "partials/discover.html"
+    import json
+    trigger = json.loads(response.headers["HX-Trigger"])
+    assert trigger["phaseComplete"]["phase"] == "discover"
+    assert trigger["phaseComplete"]["completed"] is True
     mock_save.assert_called_once_with(mock_state)
 
 
@@ -283,13 +289,19 @@ def test_run_generate_success(mock_gen_prompts, mock_get_state, mock_save):
     updated_focus.prompts = [MagicMock(), MagicMock(), MagicMock()]
     mock_gen_prompts.return_value = [updated_focus]
 
-    app, _ = _make_app()
+    app, mock_templates = _make_app()
     client = TestClient(app)
 
     response = client.post("/generate")
 
     assert response.status_code == 200
-    assert "Generated 3 prompts" in response.text
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert call_args[0][1] == "partials/generate.html"
+    import json
+    trigger = json.loads(response.headers["HX-Trigger"])
+    assert trigger["phaseComplete"]["phase"] == "generate"
+    assert trigger["phaseComplete"]["completed"] is True
     mock_save.assert_called_once_with(mock_state)
 
 
@@ -341,14 +353,19 @@ def test_run_score_success(mock_score_all, mock_get_state, mock_save):
     scored_focus.prompts = [MagicMock(needs_review=False), MagicMock(needs_review=True)]
     mock_score_all.return_value = [scored_focus]
 
-    app, _ = _make_app()
+    app, mock_templates = _make_app()
     client = TestClient(app)
 
     response = client.post("/score")
 
     assert response.status_code == 200
-    assert "Scoring complete" in response.text
-    assert "2 prompts scored" in response.text
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert call_args[0][1] == "partials/score.html"
+    import json
+    trigger = json.loads(response.headers["HX-Trigger"])
+    assert trigger["phaseComplete"]["phase"] == "score"
+    assert trigger["phaseComplete"]["completed"] is True
     mock_save.assert_called_once_with(mock_state)
 
 
@@ -398,13 +415,19 @@ def test_run_export_json(mock_get_state, mock_export_json):
     mock_get_state.return_value = mock_state
     mock_export_json.return_value = "fp-export.json"
 
-    app, _ = _make_app()
+    app, mock_templates = _make_app()
     client = TestClient(app)
 
     response = client.post("/export", data={"fmt": "json"})
 
     assert response.status_code == 200
-    assert "Exported to fp-export.json" in response.text
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert call_args[0][1] == "partials/export.html"
+    import json
+    trigger = json.loads(response.headers["HX-Trigger"])
+    assert trigger["phaseComplete"]["phase"] == "export"
+    assert trigger["phaseComplete"]["completed"] is True
 
 
 @patch("fp.web.routes.pipeline.export_csv")
@@ -416,13 +439,19 @@ def test_run_export_csv(mock_get_state, mock_export_csv):
     mock_get_state.return_value = mock_state
     mock_export_csv.return_value = "fp-export.csv"
 
-    app, _ = _make_app()
+    app, mock_templates = _make_app()
     client = TestClient(app)
 
     response = client.post("/export", data={"fmt": "csv"})
 
     assert response.status_code == 200
-    assert "Exported to fp-export.csv" in response.text
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert call_args[0][1] == "partials/export.html"
+    import json
+    trigger = json.loads(response.headers["HX-Trigger"])
+    assert trigger["phaseComplete"]["phase"] == "export"
+    assert trigger["phaseComplete"]["completed"] is True
 
 
 @patch("fp.web.routes.pipeline.get_state")

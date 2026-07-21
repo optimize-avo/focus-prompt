@@ -441,16 +441,9 @@ async def run_discover(request: Request):
         focuses = generate_focuses(brand, problems, language=state.config.language)
         state.focuses = focuses
         save_state(state)
-        items = "".join(
-            f'<li class="text-sm"><strong>{f.name}</strong> — {f.signal_count} signals</li>'
-            for f in focuses
-        )
-        resp = HTMLResponse(f'''
-            <div class="space-y-2">
-                <p class="text-green-600 font-medium">✓ Discovered {len(focuses)} focuses</p>
-                <ul class="list-disc list-inside text-sm text-gray-700">{items}</ul>
-            </div>
-        ''')
+
+        templates = request.app.state.templates
+        resp = templates.TemplateResponse(request, "partials/discover.html", {"state": state})
         resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "discover", "completed": True}})
         return resp
     except Exception as e:
@@ -468,13 +461,9 @@ async def run_generate(request: Request):
         updated = generate_all_prompts(state.config.brand, state.focuses, state.config.prompt_mode, language=state.config.language)
         state.focuses = updated
         save_state(state)
-        total = sum(len(f.prompts) for f in state.focuses)
-        resp = HTMLResponse(f'''
-            <div class="space-y-2">
-                <p class="text-green-600 font-medium">✓ Generated {total} prompts</p>
-                <p class="text-sm text-gray-500">Across {len(state.focuses)} focuses</p>
-            </div>
-        ''')
+
+        templates = request.app.state.templates
+        resp = templates.TemplateResponse(request, "partials/generate.html", {"state": state})
         resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "generate", "completed": True}})
         return resp
     except Exception as e:
@@ -496,13 +485,9 @@ async def run_score(request: Request):
         scored = score_all(state.focuses, state.config.brand)
         state.focuses = scored
         save_state(state)
-        needs_review = sum(1 for f in state.focuses for p in f.prompts if p.needs_review)
-        resp = HTMLResponse(f'''
-            <div class="space-y-2">
-                <p class="text-green-600 font-medium">✓ Scoring complete</p>
-                <p class="text-sm text-gray-500">{total_prompts} prompts scored, {needs_review} need review</p>
-            </div>
-        ''')
+
+        templates = request.app.state.templates
+        resp = templates.TemplateResponse(request, "partials/score.html", {"state": state})
         resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "score", "completed": True}})
         return resp
     except Exception as e:
@@ -521,12 +506,11 @@ async def run_export(request: Request, fmt: str = Form("json")):
             path = export_csv(state, "fp-export.csv")
         else:
             path = export_json(state, "fp-export.json")
-        return HTMLResponse(f'''
-            <div class="space-y-2">
-                <p class="text-green-600 font-medium">✓ Exported to {path}</p>
-                <p class="text-sm text-gray-500">{len(state.focuses)} focuses, {sum(len(f.prompts) for f in state.focuses)} prompts</p>
-            </div>
-        ''')
+
+        templates = request.app.state.templates
+        resp = templates.TemplateResponse(request, "partials/export.html", {"state": state})
+        resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "export", "completed": True}})
+        return resp
     except Exception as e:
         return HTMLResponse(f'<p class="text-red-600">Export failed: {e}</p>')
 

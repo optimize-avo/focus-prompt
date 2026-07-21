@@ -5,13 +5,13 @@
 
 /* ── Modal z-index stacking ──────────────────────────────── */
 #review-modal {
-    z-index: 50;
+    z-index: 9999;
 }
 #review-modal [data-modal-backdrop-click] {
-    z-index: 51;
+    z-index: 10000;
 }
-#review-modal > div:last-child {
-    z-index: 52;
+#review-modal > div:not(.sr-only):not([data-modal-backdrop-click]):not([aria-hidden]) {
+    z-index: 10001;
 }
 
 /* ── Wizard step indicator ───────────────────────────────── */

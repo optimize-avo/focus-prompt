@@ -228,7 +228,7 @@ async def run_all_phases(request: Request):
                     yield _done(status="error", phase="discover")
                     return
 
-                focuses = generate_focuses(brand, problems)
+                focuses = generate_focuses(brand, problems, language=state.config.language)
                 state.focuses = focuses
                 save_state(state)
                 yield _phase("discover", status="completed")

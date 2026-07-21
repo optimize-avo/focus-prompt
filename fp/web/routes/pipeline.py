@@ -251,7 +251,7 @@ async def run_all_phases(request: Request):
                     yield _done(status="error", phase="generate")
                     return
 
-                updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode)
+                updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode, language=state.config.language)
                 state.focuses = updated
                 save_state(state)
                 yield _phase("generate", status="completed")

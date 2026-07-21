@@ -237,7 +237,16 @@
                 {% else %}🛑 Locked{% endif %}
             </span>
         </div>
-        {% set scored_prompts = state.focuses|map(attribute='prompts')|map('selectattr', 'overall_score', 'gt', 0)|list|sum(start=[]) if state and state.focuses else [] %}
+        {% set scored_prompts = [] %}
+        {% if state and state.focuses %}
+            {% for focus in state.focuses %}
+                {% for prompt in focus.prompts %}
+                    {% if prompt.overall_score is defined and prompt.overall_score > 0 %}
+                        {% set _ = scored_prompts.append(prompt) %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        {% endif %}
         {% if scored_prompts|length > 0 %}
         <p class="text-sm text-slate-400 mb-4">Scored {{ scored_prompts|length }} prompts. Average score: {{ "%.2f"|format(scored_prompts|map(attribute='overall_score')|sum / scored_prompts|length) }}.</p>
         <div class="space-y-2 mb-4 max-h-64 overflow-y-auto">

@@ -493,3 +493,71 @@ async def keep_items(request: Request, step: str):
         return {"status": "ok", "kept": 0, "discarded": 0}
 
     return {"status": "ok", "kept": 0, "discarded": 0}
+
+
+@router.post("/pipeline/step/{step}/regenerate")
+async def regenerate_items(request: Request, step: str):
+    """Regenerate items for specified focuses or items."""
+    state = get_state()
+    if not state:
+        return {"status": "error", "message": "No project found"}
+
+    try:
+        body = await request.json()
+        regenerate_ids = body.get("regenerate_ids", [])
+    except Exception:
+        regenerate_ids = []
+
+    brand = state.config.brand
+    language = state.config.language
+
+    if step == "research":
+        # Regenerate queries for research
+        from fp.research.web import research_queries
+        web_data = await research_queries(brand, extra_queries=regenerate_ids if regenerate_ids else None)
+        state.web_data = web_data
+        save_state(state)
+        return {"status": "ok", "regenerating": 1}
+
+    elif step == "discover":
+        # Regenerate focuses
+        from fp.enrichment.problems import discover_problems, discover_problems_enriched
+        from fp.generate.focuses import generate_focuses
+        web_data = getattr(state, "web_data", None)
+        if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
+            problems = await discover_problems_enriched(brand, web_data, language=language)
+        else:
+            problems = discover_problems(brand, language=language)
+        focuses = generate_focuses(brand, problems, language=language)
+        state.focuses = focuses
+        save_state(state)
+        return {"status": "ok", "regenerating": len(focuses)}
+
+    elif step == "generate":
+        # Regenerate prompts for specified focuses
+        from fp.generate.prompts import generate_all_prompts
+        if regenerate_ids:
+            # Only regenerate for specific focuses
+            focuses_to_regen = [f for f in state.focuses if f.name in regenerate_ids]
+            if focuses_to_regen:
+                updated = generate_all_prompts(brand, focuses_to_regen, state.config.prompt_mode, language=language)
+                # Merge back
+                for i, f in enumerate(state.focuses):
+                    if f.name in regenerate_ids:
+                        state.focuses[i] = updated[[u.name for u in updated].index(f.name)]
+        else:
+            # Regenerate all
+            updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode, language=language)
+            state.focuses = updated
+        save_state(state)
+        return {"status": "ok", "regenerating": len(regenerate_ids) if regenerate_ids else len(state.focuses)}
+
+    elif step == "score":
+        # Re-score all prompts
+        from fp.scoring.scorer import score_all
+        scored = score_all(state.focuses, brand)
+        state.focuses = scored
+        save_state(state)
+        return {"status": "ok", "regenerating": 1}
+
+    return {"status": "ok", "regenerating": 0}

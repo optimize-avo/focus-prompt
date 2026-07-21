@@ -274,3 +274,43 @@ def test_init_research_handles_error_gracefully(mock_research):
 
     assert response.status_code == 200
     assert "error" in response.text.lower() or "failed" in response.text.lower()
+
+
+# ── Integration: auto-detect flow ─────────────────────────────────────
+
+@patch("fp.web.routes.pages.research_brand")
+@patch("fp.web.routes.pages.save_state")
+def test_init_research_then_submit_creates_project(mock_save, mock_research):
+    """Full flow: auto-detect returns brand data, user submits form, project created."""
+    brand_data = {
+        "name": "ACME Corp",
+        "description": "Enterprise software",
+        "website": "https://acme.com",
+        "service_categories": ["SaaS", "Analytics"],
+        "competitors": ["Zoom", "Slack"],
+        "confidence": 0.85,
+    }
+    mock_research.return_value = brand_data
+
+    app, mock_templates = _make_app()
+    # Register the pipeline router too so /api/init works
+    from fp.web.routes.pipeline import router as pipeline_router
+    app.include_router(pipeline_router, prefix="/api")
+    client = TestClient(app)
+
+    # Step 1: Auto-detect
+    response = client.post("/init/research", data={"domain": "acme.com"})
+    assert response.status_code == 200
+
+    # Step 2: Submit the review form (simulating user clicking "Create Project")
+    response = client.post("/api/init", data={
+        "name": "ACME Corp",
+        "description": "Enterprise software",
+        "website": "https://acme.com",
+        "services": "SaaS, Analytics",
+        "competitors": "Zoom, Slack",
+        "mode": "unbranded",
+        "language": "id",
+    })
+    assert response.status_code == 200
+    mock_save.assert_called_once()

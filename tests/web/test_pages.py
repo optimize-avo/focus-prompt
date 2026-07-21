@@ -1,6 +1,7 @@
 """Tests for fp.web.routes.pages — HTML page routes."""
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from fastapi import FastAPI
@@ -137,7 +138,7 @@ def test_pipeline_redirects_to_init_when_no_state(mock_get_state):
 @patch("fp.web.routes.pages.get_state")
 def test_pipeline_returns_html_when_state_exists(mock_get_state):
     """GET /pipeline should render pipeline.html when project state exists."""
-    mock_get_state.return_value = {"brand": "test"}
+    mock_get_state.return_value = SimpleNamespace(brand="test", web_data=None, focuses=[])
     app, mock_templates = _make_app()
     client = TestClient(app)
 
@@ -154,7 +155,7 @@ def test_pipeline_returns_html_when_state_exists(mock_get_state):
 @patch("fp.web.routes.pages.get_state")
 def test_pipeline_passes_state_in_context(mock_get_state):
     """GET /pipeline should pass state in the template context."""
-    state_value = {"brand": "Acme Corp"}
+    state_value = SimpleNamespace(brand="Acme Corp", web_data=None, focuses=[])
     mock_get_state.return_value = state_value
     app, mock_templates = _make_app()
     client = TestClient(app)

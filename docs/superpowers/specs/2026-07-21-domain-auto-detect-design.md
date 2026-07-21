@@ -100,7 +100,7 @@ Confidence does not block anything — it hints to the user in the review form.
 
 ### Init Page (`init.html`)
 
-Add a new section above the existing manual form:
+Wrap the existing content in a `<div id="init-container">` so HTMX can swap the whole container. Add auto-detect section above the existing form inside this container:
 
 ```html
 <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-6">

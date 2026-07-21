@@ -40,12 +40,14 @@ Rules:
 """
 
 
-def generate_focuses(brand: Brand, problems: list[dict], model: str = "") -> list[Focus]:
+def generate_focuses(brand: Brand, problems: list[dict], model: str = "", language: str = "id") -> list[Focus]:
     """Generate focus clusters from discovered problems using LLM."""
+    lang_instruction = LANGUAGE_INSTRUCTION.get(language, LANGUAGE_INSTRUCTION["id"])
+    system_prompt = FOCUS_GENERATION_PROMPT.format(language_instruction=lang_instruction)
     data = completion_json(
         model=model,
         messages=[
-            {"role": "system", "content": FOCUS_GENERATION_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps({
                 "brand": brand.name,
                 "description": brand.description,

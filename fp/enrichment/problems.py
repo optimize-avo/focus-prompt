@@ -135,6 +135,7 @@ async def discover_problems_enriched(
     brand: Brand,
     web_data: dict,
     model: str = "",
+    language: str = "id",
 ) -> list[dict]:
     """Discover problems using real web research data as ground truth.
 

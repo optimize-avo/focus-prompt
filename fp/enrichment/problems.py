@@ -124,8 +124,9 @@ OUTPUT FORMAT — Return a JSON object:
 
 Rules:
 - {language_instruction}
-- PRIORITIZE queries from the real data provided
-- Mark each problem's source: autocomplete or synthesized
+- PRIORITIZE queries from the real data provided (autocomplete + EXA)
+- Mark each problem's source: autocomplete, exa, or synthesized
+- EXA results contain semantically related content — extract relevant queries from titles/snippets
 - Queries must reflect the real search patterns provided
 - Be specific, not generic
 """

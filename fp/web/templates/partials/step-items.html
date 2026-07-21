@@ -1,0 +1,18 @@
+<!-- Checkbox list for keep/discard -->
+<!-- Expects: items (list), step_id (str) -->
+<div class="step-items space-y-2">
+    {% for item in items %}
+    <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
+        <input type="checkbox" 
+               class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0" 
+               value="{{ item.id }}"
+               data-item-id="{{ item.id }}"
+               data-step="{{ step_id }}"
+               {% if item.get('checked', True) %}checked{% endif %}>
+        <span class="text-slate-200 text-sm flex-1">{{ item.text }}</span>
+        {% if item.get('meta') %}
+        <span class="text-slate-500 text-xs">{{ item.meta }}</span>
+        {% endif %}
+    </label>
+    {% endfor %}
+</div>

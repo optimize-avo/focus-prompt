@@ -118,7 +118,7 @@ def generate_prompts_for_focus(
             ))
 
     if mode in (PromptMode.BRANDED, PromptMode.BOTH):
-        branded = _call_prompt_gen(brand, focus, BRANDED_PROMPT_PROMPT, model=model)
+        branded = _call_prompt_gen(brand, focus, BRANDED_PROMPT_PROMPT, model=model, language=language)
         for p in branded:
             all_prompts.append(ScoredPrompt(
                 text=p.get("text", ""),

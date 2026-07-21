@@ -284,7 +284,7 @@ def discover(
 
     console.print("🧠 Generating focuses...")
     try:
-        focuses = generate_focuses(brand, problems, model=model)
+        focuses = generate_focuses(brand, problems, model=model, language=state.config.language)
     except Exception as e:
         err_console.print(f"[red]Focus generation failed:[/red] {e}")
         raise typer.Exit(1)

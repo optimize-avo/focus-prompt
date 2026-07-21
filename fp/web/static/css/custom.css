@@ -1,0 +1,66 @@
+/* =========================================================
+   Focus Prompt – Custom styles (modal, wizard, utilities)
+   Loaded after Tailwind so these act as overrides / additions.
+   ========================================================= */
+
+/* ── Modal z-index stacking ──────────────────────────────── */
+#review-modal {
+    z-index: 50;
+}
+#review-modal [data-modal-backdrop-click] {
+    z-index: 51;
+}
+#review-modal > div:last-child {
+    z-index: 52;
+}
+
+/* ── Wizard step indicator ───────────────────────────────── */
+.step-indicator {
+    transition: all 0.3s ease;
+}
+.step-indicator.active {
+    transform: scale(1.1);
+}
+
+/* ── Smooth step content transitions ─────────────────────── */
+.step-content {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.step-content.entering {
+    opacity: 0;
+    transform: translateX(20px);
+}
+.step-content.active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* ── Modal enter/exit animation ──────────────────────────── */
+@keyframes modal-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes modal-slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#review-modal:not(.hidden) [data-modal-backdrop-click] {
+    animation: modal-fade-in 0.2s ease-out;
+}
+#review-modal:not(.hidden) > div:last-child {
+    animation: modal-slide-up 0.25s ease-out;
+}
+
+/* ── Focus-visible ring (accessibility) ──────────────────── */
+#review-modal *:focus-visible {
+    outline: 2px solid #3b82f6;   /* blue-500 */
+    outline-offset: 2px;
+}
+
+/* ── Item row keyboard focus ─────────────────────────────── */
+#review-modal [role="option"]:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    border-radius: 0.5rem;
+}

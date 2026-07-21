@@ -1,0 +1,98 @@
+<!-- Reusable review modal for pipeline wizard steps -->
+<div id="review-modal"
+     class="fixed inset-0 z-50 hidden"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="modal-title"
+     aria-describedby="modal-count"
+     data-modal-backdrop>
+
+  <!-- Backdrop -->
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm"
+       aria-hidden="true"
+       data-modal-backdrop-click></div>
+
+  <!-- Dialog panel -->
+  <div class="fixed inset-4 md:inset-12 lg:inset-24 bg-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+      <h3 id="modal-title" class="text-lg font-semibold text-white">
+        Tinjau Item
+      </h3>
+      <button data-modal-close
+              class="text-slate-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
+              aria-label="Tutup dialog">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Search + Controls -->
+    <div class="px-6 py-3 border-b border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input type="text"
+               id="modal-search"
+               placeholder="Cari item..."
+               autocomplete="off"
+               aria-label="Cari item"
+               class="w-full bg-slate-700 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+               data-modal-search>
+      </div>
+      <button id="modal-select-all"
+              data-modal-select-all
+              class="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500">
+        Pilih Semua
+      </button>
+    </div>
+
+    <!-- Items list (scrolled) -->
+    <div id="modal-items"
+         class="flex-1 overflow-y-auto px-6 py-4 space-y-1"
+         role="listbox"
+         aria-label="Daftar item"
+         aria-multiselectable="true"
+         data-modal-items>
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Empty state (hidden by default) -->
+    <div id="modal-empty"
+         class="hidden flex-1 flex items-center justify-center px-6 py-4 text-slate-400 text-sm">
+      Tidak ada item yang cocok dengan pencarian.
+    </div>
+
+    <!-- Footer -->
+    <div class="px-6 py-4 border-t border-slate-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <span id="modal-count"
+            class="text-sm text-slate-400"
+            aria-live="polite"
+            aria-atomic="true"
+            data-modal-count>
+        Dipilih: 0 / 0
+      </span>
+      <div class="flex gap-3 justify-end">
+        <button data-modal-close
+                class="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400">
+          Batal
+        </button>
+        <button data-modal-save
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400">
+          Simpan Pilihan
+        </button>
+      </div>
+    </div>
+
+  </div><!-- /dialog panel -->
+
+  <!-- Visually hidden live region for screen readers -->
+  <div id="modal-live-region" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+</div><!-- /review-modal -->

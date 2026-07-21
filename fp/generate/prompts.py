@@ -136,13 +136,14 @@ def generate_all_prompts(
     focuses: list[Focus],
     mode: PromptMode = PromptMode.UNBRANDED,
     model: str = "",
+    language: str = "id",
     sanitize: bool = True,
 ) -> list[Focus]:
     """Generate prompts for all focuses in place, optionally sanitize."""
     import copy
     updated = copy.deepcopy(focuses)
     for focus in updated:
-        focus.prompts = generate_prompts_for_focus(brand, focus, mode, model=model)
+        focus.prompts = generate_prompts_for_focus(brand, focus, mode, model=model, language=language)
 
     if sanitize:
         from fp.generate.sanitize import sanitize_focuses

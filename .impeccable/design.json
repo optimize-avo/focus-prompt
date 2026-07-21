@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-21T00:00:00Z",
+  "title": "Design System: Focus Prompt",
+  "extensions": {
+    "colorMeta": {
+      "midnight-navy": {
+        "role": "neutral",
+        "displayName": "Midnight Navy",
+        "canonical": "#0f172a",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "deep-slate": {
+        "role": "neutral",
+        "displayName": "Deep Slate",
+        "canonical": "#1e293b",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "steel-gray": {
+        "role": "neutral",
+        "displayName": "Steel Gray",
+        "canonical": "#334155",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1"]
+      },
+      "bright-blue": {
+        "role": "primary",
+        "displayName": "Bright Blue",
+        "canonical": "#2563eb",
+        "tonalRamp": ["#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93bbfd", "#bfdbfe"]
+      },
+      "light-blue": {
+        "role": "secondary",
+        "displayName": "Light Blue",
+        "canonical": "#60a5fa",
+        "tonalRamp": ["#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93bbfd", "#bfdbfe"]
+      },
+      "emerald-success": {
+        "role": "status",
+        "displayName": "Emerald",
+        "canonical": "#10b981",
+        "tonalRamp": ["#064e3b", "#065f46", "#047857", "#059669", "#10b981", "#34d399", "#6ee7b7", "#a7f3d0"]
+      },
+      "amber-warning": {
+        "role": "status",
+        "displayName": "Amber",
+        "canonical": "#f59e0b",
+        "tonalRamp": ["#78350f", "#92400e", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fde68a"]
+      },
+      "red-error": {
+        "role": "status",
+        "displayName": "Red",
+        "canonical": "#ef4444",
+        "tonalRamp": ["#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fecaca"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles and primary headings. One per view maximum."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headers and card titles. Groups related content."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Component-level headings within a section."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Primary content text. Max 75ch line length."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, column headers, category markers."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Code snippets, technical values, data identifiers."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing for state transitions."
+      },
+      {
+        "name": "status-pulse",
+        "value": "opacity 1.5s ease-in-out infinite",
+        "purpose": "Pulse animation for running/loading states."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action button for key interactions. Blue background, white text.",
+      "html": "<button class=\"ds-btn-primary\">Run Pipeline</button>",
+      "css": ".ds-btn-primary { background: #2563eb; color: #ffffff; padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 500; font-size: 0.875rem; border: none; cursor: pointer; transition: background 0.2s ease; } .ds-btn-primary:hover { background: #3b82f6; } .ds-btn-primary:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary action button. Steel gray background, white text.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { background: #334155; color: #ffffff; padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 500; font-size: 0.875rem; border: none; cursor: pointer; transition: background 0.2s ease; } .ds-btn-secondary:hover { background: #475569; } .ds-btn-secondary:focus-visible { outline: 2px solid #475569; outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Content container for sections and data displays. Deep slate background with subtle border.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Section Title</h3><p class=\"ds-card-body\">Content goes here.</p></div>",
+      "css": ".ds-card { background: #1e293b; border: 1px solid rgba(71, 85, 105, 0.5); border-radius: 0.75rem; padding: 1.5rem; } .ds-card-title { color: #ffffff; font-weight: 600; font-size: 1.125rem; margin-bottom: 0.5rem; } .ds-card-body { color: #e2e8f0; font-size: 0.875rem; line-height: 1.5; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text input field for forms. Steel gray background with muted border.",
+      "html": "<input type=\"text\" class=\"ds-input\" placeholder=\"Enter value...\" />",
+      "css": ".ds-input { background: #334155; border: 1px solid #475569; border-radius: 0.75rem; padding: 0.5rem 0.75rem; color: #ffffff; font-size: 0.875rem; width: 100%; transition: border-color 0.2s ease, box-shadow 0.2s ease; } .ds-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); } .ds-input::placeholder { color: #64748b; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Pill-shaped badge for status indicators and counts. Blue glow background.",
+      "html": "<span class=\"ds-badge\">12 items</span>",
+      "css": ".ds-badge { background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; display: inline-flex; align-items: center; }"
+    },
+    {
+      "name": "Pipeline Stepper",
+      "kind": "custom",
+      "refersTo": "pipeline-stepper",
+      "description": "Visual progress indicator for the 5-phase pipeline workflow. Shows connected steps with status indicators.",
+      "html": "<div class=\"ds-stepper\"><div class=\"ds-step ds-step-complete\"><div class=\"ds-step-circle\">✓</div><span class=\"ds-step-label\">Research</span></div><div class=\"ds-step-line\"></div><div class=\"ds-step ds-step-active\"><div class=\"ds-step-circle\">2</div><span class=\"ds-step-label\">Discover</span></div><div class=\"ds-step-line\"></div><div class=\"ds-step ds-step-locked\"><div class=\"ds-step-circle\">3</div><span class=\"ds-step-label\">Generate</span></div></div>",
+      "css": ".ds-stepper { display: flex; align-items: center; gap: 0.5rem; } .ds-step { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; } .ds-step-circle { width: 2rem; height: 2rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; } .ds-step-complete .ds-step-circle { background: #10b981; color: #ffffff; } .ds-step-active .ds-step-circle { background: #2563eb; color: #ffffff; } .ds-step-locked .ds-step-circle { background: #334155; color: #64748b; } .ds-step-label { font-size: 0.75rem; color: #94a3b8; } .ds-step-line { width: 2rem; height: 2px; background: #334155; } .ds-step-complete + .ds-step-line { background: #10b981; }"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Navigation link in the top bar. Silver text, subtle hover effect.",
+      "html": "<a href=\"/pipeline\" class=\"ds-nav-link\">Pipeline</a>",
+      "css": ".ds-nav-link { color: #94a3b8; padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; text-decoration: none; transition: color 0.2s ease, background 0.2s ease; } .ds-nav-link:hover { color: #ffffff; background: rgba(51, 65, 85, 0.5); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Research Lab",
+    "overview": "Focus Prompt's design system embodies the precision and analytical rigor of a research laboratory. Every interface element serves a clear purpose — to surface data, guide analysis, and enable decisive action. The system rejects frivolous decoration in favor of functional clarity, treating every pixel as a tool in the researcher's workflow.\n\nThe midnight navy foundation creates a focused, distraction-free environment where data stands out against the darkness. Blue accents serve as beacons of action and status, drawing the eye to interactive elements and key metrics. The overall density is intentional — information is layered but never cluttered, with clear visual hierarchy guiding the user through complex multi-step workflows.",
+    "keyCharacteristics": [
+      "Analytical precision: Every element has a clear data role",
+      "Controlled density: Information-rich without overwhelming",
+      "Action-oriented: Clear affordances for every interactive element",
+      "Status-driven: Color-coded feedback for pipeline progress and data quality"
+    ],
+    "rules": [
+      {
+        "name": "The Beacon Rule",
+        "body": "Blue is reserved exclusively for actionable elements — buttons, active tabs, clickable badges. Never use blue for decorative purposes or static content. Its scarcity is the point.",
+        "section": "colors"
+      },
+      {
+        "name": "The Layering Rule",
+        "body": "Background depth follows a strict scale: root (navy) → cards (deep slate) → inputs (steel gray). Never invert this hierarchy. Shadows are not used; depth is conveyed through color alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Hierarchy Rule",
+        "body": "Every screen must have exactly one Display heading. All other text defers to the hierarchy — no skipping levels, no using bold body text as a substitute for proper headings.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "No element has a shadow at rest. Hover states may use subtle background lightening (one step up the slate scale) to indicate interactivity. The absence of shadows reinforces the 'research lab' aesthetic — clean, precise, no unnecessary visual noise.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Use blue exclusively for actionable elements — buttons, active states, clickable badges. Its restraint is the system's strength.",
+      "Maintain the layering hierarchy: root → cards → inputs. Never invert the depth scale.",
+      "Use uppercase labels with letter-spacing for field labels and category markers — they create clear visual separation from content.",
+      "Keep information density intentional — every element earns its space through data value or action affordance.",
+      "Use status colors (emerald, amber, red, yellow) consistently across all pipeline states and metrics.",
+      "Ensure body text hits 4.5:1 contrast against its background (cloud white on deep slate achieves this)."
+    ],
+    "donts": [
+      "Use shadows for elevation — the system is flat by design. Depth comes from color layering only.",
+      "Use blue for decorative purposes, static content, or non-interactive elements. Blue means 'you can do something with this.'",
+      "Invert the background hierarchy. Never put a lighter background inside a darker container.",
+      "Use playful or gamified elements — no badges, achievements, confetti, or game-like interactions. This is a research tool, not a game.",
+      "Use overly colorful or saturated accent schemes. The palette is intentionally muted to keep focus on data.",
+      "Add gratuitous animations or transitions. Motion should be functional — indicating state changes, not decorating them.",
+      "Use glassmorphism, gradient text, or other decorative effects. The aesthetic is clean, flat, and analytical."
+    ]
+  }
+}

@@ -6,6 +6,11 @@ import json
 from fp.llm import completion_json
 from fp.models import Brand, Focus, PromptMode, Prompt, PromptIntent, ScoredPrompt
 
+LANGUAGE_INSTRUCTION = {
+    "id": "OUTPUT LANGUAGE: Write ALL prompts in Bahasa Indonesia. NEVER use Chinese characters (汉字), Japanese, Korean, or any non-Latin script except Arabic numerals.",
+    "en": "OUTPUT LANGUAGE: Write ALL prompts in English. NEVER use Chinese characters (汉字), Japanese, Korean, or any non-Latin script except Arabic numerals.",
+    "mix": "OUTPUT LANGUAGE: Write prompts in a mix of Indonesian and English (as real users do). NEVER use Chinese characters (汉字), Japanese, Korean, or any non-Latin script except Arabic numerals.",
+}
 
 UNBRANDED_PROMPT_PROMPT = """You are an expert at predicting what real users ask AI chatbots. Given a focus topic and a brand that offers relevant services, generate realistic user prompts that people would actually type into ChatGPT, Google Gemini, or similar AI tools.
 

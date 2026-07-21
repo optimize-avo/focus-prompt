@@ -268,10 +268,10 @@ def discover(
         web_data = getattr(state, 'web_data', None)
         if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
             console.print("  📡 Using real web research data as ground truth")
-            problems = asyncio.run(discover_problems_enriched(brand, web_data, model=model))
+            problems = asyncio.run(discover_problems_enriched(brand, web_data, model=model, language=state.config.language))
         else:
             console.print("  ⚠ No web data — using LLM-only discovery (run [bold]fp research[/] first for better results)")
-            problems = discover_problems(brand, model=model)
+            problems = discover_problems(brand, model=model, language=state.config.language)
     except Exception as e:
         err_console.print(f"[red]Problem discovery failed:[/red] {e}")
         raise typer.Exit(1)

@@ -151,9 +151,9 @@ async def fp_discover(model: str = "") -> str:
     try:
         web_data = getattr(state, 'web_data', None)
         if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
-            problems = await discover_problems_enriched(brand, web_data, model=model)
+            problems = await discover_problems_enriched(brand, web_data, model=model, language=state.config.language)
         else:
-            problems = discover_problems(brand, model=model)
+            problems = discover_problems(brand, model=model, language=state.config.language)
     except Exception as e:
         return json.dumps({"error": f"Problem discovery failed: {str(e)}"})
 

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from fp.models import Brand, ProjectConfig, ProjectState, PromptMode
+from fp.research.autodetect import research_brand
 from fp.web.deps import get_state, get_config, save_state
 
 router = APIRouter()
@@ -25,6 +26,26 @@ async def init_page(request: Request):
     """Brand setup form."""
     templates = request.app.state.templates
     return templates.TemplateResponse(request, "init.html")
+
+
+@router.post("/init/research", response_class=HTMLResponse)
+async def init_research(request: Request, domain: str = Form(...)):
+    """Auto-detect brand info from domain via EXA + LLM."""
+    templates = request.app.state.templates
+    try:
+        brand_data = await research_brand(domain)
+    except Exception as e:
+        return HTMLResponse(f'''
+            <div id="init-container" class="max-w-xl">
+                <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4">
+                    <p class="text-red-400 text-sm">Research failed: {e}</p>
+                    <a href="/init" class="text-red-300 text-sm underline mt-2 inline-block">← Back to manual entry</a>
+                </div>
+            </div>
+        ''')
+
+    context = {"brand": brand_data, "domain": domain}
+    return templates.TemplateResponse(request, "init_review.html", context)
 
 
 @router.get("/pipeline", response_class=HTMLResponse)

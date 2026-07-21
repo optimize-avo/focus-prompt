@@ -217,3 +217,60 @@ def test_all_routes_registered(mock_get_config, mock_get_state):
     for path in ["/", "/init", "/pipeline", "/settings"]:
         response = client.get(path)
         assert response.status_code != 405, f"{path} should be registered"
+
+
+# ── POST /init/research ──────────────────────────────────────────────
+
+@patch("fp.web.routes.pages.research_brand")
+def test_init_research_returns_html_response(mock_research):
+    """POST /init/research should return an HTML response."""
+    mock_research.return_value = {
+        "name": "ACME Corp",
+        "description": "Enterprise software",
+        "website": "https://acme.com",
+        "service_categories": ["SaaS"],
+        "competitors": ["Zoom"],
+        "confidence": 0.8,
+    }
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    response = client.post("/init/research", data={"domain": "acme.com"})
+
+    assert response.status_code == 200
+    mock_templates.TemplateResponse.assert_called_once()
+
+
+@patch("fp.web.routes.pages.research_brand")
+def test_init_research_passes_brand_in_context(mock_research):
+    """POST /init/research should pass brand data in template context."""
+    brand_data = {
+        "name": "ACME Corp",
+        "description": "Enterprise software",
+        "website": "https://acme.com",
+        "service_categories": ["SaaS"],
+        "competitors": ["Zoom"],
+        "confidence": 0.8,
+    }
+    mock_research.return_value = brand_data
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    client.post("/init/research", data={"domain": "acme.com"})
+
+    call_args = mock_templates.TemplateResponse.call_args
+    context = call_args[0][2]
+    assert context["brand"] == brand_data
+
+
+@patch("fp.web.routes.pages.research_brand")
+def test_init_research_handles_error_gracefully(mock_research):
+    """POST /init/research should return error HTML when research fails."""
+    mock_research.side_effect = Exception("EXA API down")
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    response = client.post("/init/research", data={"domain": "acme.com"})
+
+    assert response.status_code == 200
+    assert "error" in response.text.lower() or "failed" in response.text.lower()

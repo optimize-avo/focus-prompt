@@ -121,6 +121,7 @@ OUTPUT FORMAT — Return a JSON object:
 }}
 
 Rules:
+- {language_instruction}
 - PRIORITIZE queries from the real data provided
 - Mark each problem's source: autocomplete or synthesized
 - Queries must reflect the real search patterns provided

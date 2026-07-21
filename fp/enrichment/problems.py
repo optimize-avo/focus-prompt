@@ -163,10 +163,12 @@ async def discover_problems_enriched(
         },
     }
 
+    lang_instruction = LANGUAGE_INSTRUCTION.get(language, LANGUAGE_INSTRUCTION["id"])
+    system_prompt = ENRICHED_DISCOVERY_PROMPT.format(language_instruction=lang_instruction)
     data = completion_json(
         model=model,
         messages=[
-            {"role": "system", "content": ENRICHED_DISCOVERY_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps(real_data_context, indent=2, ensure_ascii=False)},
         ],
         temperature=0.5,

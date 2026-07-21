@@ -6,6 +6,11 @@ import json
 from fp.llm import completion_json
 from fp.models import Brand, Focus
 
+LANGUAGE_INSTRUCTION = {
+    "id": "Name MUST be in Indonesian (Bahasa Indonesia).",
+    "en": "Name MUST be in English.",
+    "mix": "Name can be in Indonesian or English (mix is ok, as real users mix them).",
+}
 
 FOCUS_GENERATION_PROMPT = """You are a topic clustering analyst. Given a brand and a list of real user problems/queries, cluster them into meaningful "focuses" — topic areas that represent what people are actually asking about or searching for.
 
@@ -26,7 +31,7 @@ OUTPUT FORMAT — Return JSON:
 }}
 
 Rules:
-- Name in Indonesian (mix of English/ID is ok, as real users mix them)
+- {language_instruction}
 - 4-8 focuses total
 - Each focus must have at least 3 queries
 - Focuses must be mutually exclusive

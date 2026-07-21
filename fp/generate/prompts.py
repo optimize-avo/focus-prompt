@@ -36,7 +36,7 @@ Rules:
 - Vary the phrasing: some casual, some formal, some detailed, some short
 - Vary the intent across prompts for each focus
 - 6-10 prompts per focus
-- OUTPUT LANGUAGE: Write prompts ONLY in Bahasa Indonesia or English. NEVER use Chinese characters (汉字), Japanese, Korean, or any non-Latin script except Arabic numerals. If you are unsure about a word, use the Indonesian or English equivalent.
+- {language_instruction}
 - Think about different user personas: pemula, expert, bisnis, individual
 """
 

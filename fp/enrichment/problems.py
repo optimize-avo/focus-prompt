@@ -93,7 +93,7 @@ def discover_problems_web(brand: Brand) -> list[str]:
     return queries
 
 
-ENRICHED_DISCOVERY_PROMPT = """You are a user research analyst. I'm providing you with REAL search data collected from Google Autocomplete suggestions. This is ground truth — real things people actually search for.
+ENRICHED_DISCOVERY_PROMPT = """You are a user research analyst. I'm providing you with REAL search data collected from Google Autocomplete and EXA semantic search. This is ground truth — real things people actually search for.
 
 Use this real data as your PRIMARY source. Supplement with your knowledge only where the data has gaps.
 

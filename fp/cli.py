@@ -316,7 +316,7 @@ def prompt_generate(
     console.print(f"   Mode: [yellow]{state.config.prompt_mode.value}[/]")
 
     try:
-        updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode, model=model, sanitize=not no_sanitize)
+        updated = generate_all_prompts(brand, state.focuses, state.config.prompt_mode, model=model, sanitize=not no_sanitize, language=state.config.language)
     except Exception as e:
         err_console.print(f"[red]Prompt generation failed:[/red] {e}")
         raise typer.Exit(1)

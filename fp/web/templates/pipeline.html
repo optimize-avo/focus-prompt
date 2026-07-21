@@ -46,10 +46,6 @@
     </div>
 
     <!-- Step 1: Research -->
-    {% include "partials/wizard-step.html" with context %}
-    <!-- We'll set context vars per step. Use individual partials below for now -->
-
-    <!-- Step 1: Research -->
     <div id="step-research" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="research" data-status="{{ step_statuses.get('research', 'locked') }}">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-white">1. Research Queries</h3>

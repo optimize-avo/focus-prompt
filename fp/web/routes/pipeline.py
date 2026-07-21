@@ -331,9 +331,9 @@ async def run_discover(request: Request):
     try:
         web_data = getattr(state, "web_data", None)
         if web_data and web_data.get("stats", {}).get("total_queries", 0) > 0:
-            problems = await discover_problems_enriched(brand, web_data)
+            problems = await discover_problems_enriched(brand, web_data, language=state.config.language)
         else:
-            problems = discover_problems(brand)
+            problems = discover_problems(brand, language=state.config.language)
     except Exception as e:
         return HTMLResponse(f'<p class="text-red-600">Discovery failed: {e}</p>')
 

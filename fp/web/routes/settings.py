@@ -140,3 +140,51 @@ async def export_scores_json(request: Request):
         media_type="application/json",
         headers={"Content-Disposition": "attachment; filename=scores.json"},
     )
+
+
+@router.get("/export/download/json")
+async def download_project_json(request: Request):
+    """Download full project as JSON file."""
+    state = get_state()
+    if not state:
+        return HTMLResponse('<p class="text-red-600">No project found.</p>')
+    
+    content = state.model_dump_json(indent=2)
+    return StreamingResponse(
+        iter([content]),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=fp-project-export.json"},
+    )
+
+
+@router.get("/export/download/csv")
+async def download_project_csv(request: Request):
+    """Download scored prompts as CSV file."""
+    state = get_state()
+    if not state:
+        return HTMLResponse('<p class="text-red-600">No project found.</p>')
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["focus", "prompt_text", "mode", "intent", "language", "service_match", "mention_likelihood", "overall_score", "needs_review"])
+    
+    for focus in state.focuses:
+        for prompt in focus.prompts:
+            writer.writerow([
+                focus.name,
+                prompt.text,
+                prompt.mode.value,
+                prompt.intent.value,
+                prompt.language,
+                f"{prompt.service_match:.2f}",
+                f"{prompt.mention_likelihood:.2f}",
+                f"{prompt.overall_score:.2f}",
+                prompt.needs_review,
+            ])
+    
+    content = output.getvalue()
+    return StreamingResponse(
+        iter([content]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=fp-project-export.csv"},
+    )

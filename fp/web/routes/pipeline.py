@@ -174,6 +174,109 @@ async def pipeline_scores(request: Request):
     return scored
 
 
+@router.get("/pipeline/step/{step}/items")
+async def get_step_items(request: Request, step: str):
+    """Get all items for review modal with selection state."""
+    state = get_state()
+    if not state:
+        return {"error": "No project found"}
+
+    items = []
+
+    if step == "research":
+        if state.web_data:
+            queries = state.web_data.get("autocomplete", [])
+            selected = state.step_selections.get("research", queries)
+            items = [
+                {"id": q, "text": q, "selected": q in selected}
+                for q in queries
+            ]
+
+    elif step == "discover":
+        if state.focuses:
+            selected = state.step_selections.get("discover", [f.name for f in state.focuses])
+            items = [
+                {"id": f.name, "text": f.name, "selected": f.name in selected}
+                for f in state.focuses
+            ]
+
+    elif step == "generate":
+        if state.focuses:
+            selected = state.step_selections.get("generate", [])
+            for focus in state.focuses:
+                for prompt in focus.prompts:
+                    pid = f"{focus.name}-{prompt.text[:30]}"
+                    items.append({
+                        "id": pid,
+                        "text": prompt.text,
+                        "selected": pid in selected if selected else True,
+                        "group": focus.name,
+                    })
+
+    elif step == "score":
+        if state.focuses:
+            for focus in state.focuses:
+                for prompt in focus.prompts:
+                    if prompt.overall_score > 0:
+                        items.append({
+                            "id": f"{focus.name}-{prompt.text[:30]}",
+                            "text": prompt.text,
+                            "score": prompt.overall_score,
+                            "selected": True,
+                        })
+
+    return {
+        "step": step,
+        "items": items,
+        "total": len(items),
+        "selected_count": sum(1 for i in items if i["selected"]),
+    }
+
+
+@router.post("/pipeline/step/{step}/selection")
+async def save_step_selection(request: Request, step: str):
+    """Save user's selection for a step and apply to actual data."""
+    state = get_state()
+    if not state:
+        return {"status": "error", "message": "No project found"}
+
+    try:
+        body = await request.json()
+        selected_ids = body.get("selected_ids", [])
+    except Exception:
+        selected_ids = []
+
+    if not selected_ids:
+        return {"status": "error", "message": "Must select at least one item"}
+
+    # Store selections
+    state.step_selections[step] = selected_ids
+
+    # Apply selections to actual data
+    if step == "research" and state.web_data:
+        queries = state.web_data.get("autocomplete", [])
+        state.web_data["autocomplete"] = [q for q in queries if q in selected_ids]
+        state.web_data["stats"]["total_queries"] = len(state.web_data["autocomplete"])
+
+    elif step == "discover":
+        state.focuses = [f for f in state.focuses if f.name in selected_ids]
+
+    elif step == "generate":
+        for focus in state.focuses:
+            focus.prompts = [
+                p for p in focus.prompts
+                if f"{focus.name}-{p.text[:30]}" in selected_ids
+            ]
+
+    save_state(state)
+
+    return {
+        "status": "ok",
+        "selected": len(selected_ids),
+        "total": len(selected_ids),
+    }
+
+
 @router.get("/pipeline/run-all")
 async def run_all_phases(request: Request):
     """Run all pipeline phases sequentially via SSE stream, skipping completed phases."""

@@ -80,6 +80,7 @@ class ProjectState(BaseModel):
     config: ProjectConfig
     focuses: list[Focus] = Field(default_factory=list)
     web_data: dict | None = None
+    step_selections: dict[str, list[str]] = Field(default_factory=dict)
 
     def save(self, path: str | Path):
         path = Path(path)

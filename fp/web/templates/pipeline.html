@@ -1,607 +1,320 @@
 {% extends "base.html" %}
 {% block title %}Pipeline — Focus Prompt{% endblock %}
 {% block content %}
+{% set step_statuses = step_statuses|default({}) %}
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-white">Pipeline</h1>
-        <div id="pipeline-status-badge" class="hidden px-3 py-1 rounded-full text-xs font-medium bg-slate-700 text-slate-300">
-            Loading status...
+    <h1 class="text-2xl font-bold text-white">Pipeline</h1>
+    <p class="text-slate-400 text-sm">Run the research pipeline to discover and generate prompts for your brand.</p>
+
+    <!-- Step Indicator Bar -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-4 overflow-x-auto">
+        <div class="flex items-center justify-between min-w-max">
+            {% set steps = [
+                ('research', 'Research'),
+                ('discover', 'Discover'),
+                ('generate', 'Generate'),
+                ('score', 'Score'),
+                ('export', 'Export')
+            ] %}
+            {% for step_id, step_name in steps %}
+            <div class="flex items-center">
+                <div class="flex flex-col items-center">
+                    <div class="step-indicator 
+                        {% if step_statuses.get(step_id, 'locked') == 'complete' %}bg-emerald-500 text-white
+                        {% elif step_statuses.get(step_id, 'locked') == 'loading' %}bg-blue-500 text-white status-pulse
+                        {% elif step_statuses.get(step_id, 'locked') == 'failed' %}bg-red-500 text-white
+                        {% elif step_statuses.get(step_id, 'locked') == 'ready' %}bg-blue-500/30 text-blue-400 border-2 border-blue-500
+                        {% else %}bg-slate-700 text-slate-400{% endif %}
+                        w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold">
+                        {% if step_statuses.get(step_id, 'locked') == 'complete' %}✓
+                        {% elif step_statuses.get(step_id, 'locked') == 'loading' %}⏳
+                        {% elif step_statuses.get(step_id, 'locked') == 'failed' %}✗
+                        {% elif step_statuses.get(step_id, 'locked') == 'ready' %}{{ loop.index }}
+                        {% else %}🛑{% endif %}
+                    </div>
+                    <span class="text-xs text-slate-400 mt-1">{{ step_name }}</span>
+                </div>
+                {% if not loop.last %}
+                <div class="w-12 h-0.5 mx-2 
+                    {% if step_statuses.get(step_id, 'locked') == 'complete' %}bg-emerald-500
+                    {% else %}bg-slate-700{% endif %}"></div>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Run All Button -->
-    <div id="run-all-container" class="bg-slate-800 rounded-xl border border-slate-700/50 p-4">
-        <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-                <button 
-                    id="run-all-btn"
-                    onclick="startRunAll()"
-                    class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold rounded-lg shadow-lg shadow-blue-500/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <svg id="run-all-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span id="run-all-text">Run All Phases</span>
-                    <svg id="run-all-spinner" class="hidden animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </button>
-                <button 
-                    id="cancel-run-btn"
-                    onclick="cancelPipelineRun()"
-                    class="hidden px-4 py-3 bg-red-600 hover:bg-red-500 text-white font-medium rounded-lg transition-colors"
-                >
-                    Cancel
-                </button>
-            </div>
-            <div id="run-all-phase" class="text-sm text-slate-400 hidden">
-                Running: <span id="current-phase-name" class="text-white font-medium">—</span>
-            </div>
-        </div>
-        
-        <!-- Overall Progress Bar -->
-        <div id="overall-progress-container" class="hidden">
-            <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
-                <span>Overall Progress</span>
-                <span id="overall-progress-text">0%</span>
-            </div>
-            <div class="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
-                <div id="overall-progress-bar" class="h-full bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
-            </div>
-        </div>
-    </div>
+    <!-- Step 1: Research -->
+    {% include "partials/wizard-step.html" with context %}
+    <!-- We'll set context vars per step. Use individual partials below for now -->
 
-    <!-- Tab bar -->
-    <div class="bg-slate-800 rounded-xl border border-slate-700/50 overflow-hidden">
-        <div class="flex border-b border-slate-700/50">
-            <button 
-                id="tab-research"
-                hx-get="/api/pipeline/research" 
-                hx-target="#pipeline-content" 
-                hx-indicator="#pipeline-spinner"
-                onclick="switchTab('research')"
-                class="flex-1 px-4 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-400 tab-transition hover:bg-slate-700/30"
-            >
-                <span class="flex items-center justify-center gap-2">
-                    Research
-                    <span id="badge-research" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                </span>
-            </button>
-            <button 
-                id="tab-discover"
-                hx-get="/api/pipeline/discover" 
-                hx-target="#pipeline-content" 
-                hx-indicator="#pipeline-spinner"
-                onclick="switchTab('discover')"
-                class="flex-1 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 tab-transition hover:bg-slate-700/30 hover:text-slate-200"
-            >
-                <span class="flex items-center justify-center gap-2">
-                    Discover
-                    <span id="badge-discover" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                </span>
-            </button>
-            <button 
-                id="tab-generate"
-                hx-get="/api/pipeline/generate" 
-                hx-target="#pipeline-content" 
-                hx-indicator="#pipeline-spinner"
-                onclick="switchTab('generate')"
-                class="flex-1 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 tab-transition hover:bg-slate-700/30 hover:text-slate-200"
-            >
-                <span class="flex items-center justify-center gap-2">
-                    Generate
-                    <span id="badge-generate" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                </span>
-            </button>
-            <button 
-                id="tab-score"
-                hx-get="/api/pipeline/score" 
-                hx-target="#pipeline-content" 
-                hx-indicator="#pipeline-spinner"
-                onclick="switchTab('score')"
-                class="flex-1 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 tab-transition hover:bg-slate-700/30 hover:text-slate-200"
-            >
-                <span class="flex items-center justify-center gap-2">
-                    Score
-                    <span id="badge-score" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                </span>
-            </button>
-            <button 
-                id="tab-export"
-                hx-get="/api/pipeline/export" 
-                hx-target="#pipeline-content" 
-                hx-indicator="#pipeline-spinner"
-                onclick="switchTab('export')"
-                class="flex-1 px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 tab-transition hover:bg-slate-700/30 hover:text-slate-200"
-            >
-                <span class="flex items-center justify-center gap-2">
-                    Export
-                    <span id="badge-export" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                </span>
-            </button>
-        </div>
-
-        <!-- Content area -->
-        <div id="pipeline-content" class="bg-slate-800/50 p-6">
-            <span id="pipeline-spinner" class="htmx-indicator text-sm text-slate-400">
-                <svg class="animate-spin h-4 w-4 inline mr-2" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Loading...
+    <!-- Step 1: Research -->
+    <div id="step-research" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="research" data-status="{{ step_statuses.get('research', 'locked') }}">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">1. Research Queries</h3>
+            <span class="px-3 py-1 rounded-full text-xs font-medium
+                {% if step_statuses.get('research') == 'complete' %}bg-emerald-500/20 text-emerald-400
+                {% elif step_statuses.get('research') == 'loading' %}bg-blue-500 text-white status-pulse
+                {% elif step_statuses.get('research') == 'failed' %}bg-red-500/20 text-red-400
+                {% elif step_statuses.get('research') == 'ready' %}bg-blue-500/20 text-blue-400
+                {% else %}bg-slate-700 text-slate-400{% endif %}">
+                {% if step_statuses.get('research') == 'complete' %}✓ Complete
+                {% elif step_statuses.get('research') == 'loading' %}⏳ Loading...
+                {% elif step_statuses.get('research') == 'failed' %}✗ Failed
+                {% elif step_statuses.get('research') == 'ready' %}○ Ready
+                {% else %}🛑 Locked{% endif %}
             </span>
-            <div class="text-center py-12">
-                <svg class="w-12 h-12 mx-auto text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                </svg>
-                <p class="text-slate-400">Select a phase above to begin</p>
-                <p class="text-slate-500 text-sm mt-1">or click "Run All Phases" to execute the full pipeline</p>
+        </div>
+        {% if state and state.web_data and state.web_data.get('stats', {}).get('total_queries', 0) > 0 %}
+        <p class="text-sm text-slate-400 mb-4">Generated {{ state.web_data['stats']['total_queries'] }} queries for brand analysis.</p>
+        <div class="space-y-2 mb-4">
+            {% for query in state.web_data.get('autocomplete', [])[:10] %}
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
+                <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
+                       value="{{ loop.index }}" data-item-id="{{ loop.index }}" data-step="research" checked>
+                <span class="text-slate-200 text-sm flex-1">{{ query }}</span>
+            </label>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-400 mb-4">Fetch real user queries from Google Autocomplete to start.</p>
+        <form hx-post="/api/research" hx-target="#research-result" hx-indicator="#research-spinner" hx-trigger="submit">
+            <div class="mb-3">
+                <label class="block text-sm font-medium text-slate-300 mb-1">Extra seed queries (optional)</label>
+                <input type="text" name="extra" placeholder="seed1, seed2" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
+            <div class="flex items-center gap-3">
+                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+                    🔍 Run Research
+                </button>
+                <span id="research-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
+            </div>
+        </form>
+        <div id="research-result"></div>
+        {% endif %}
+        <div class="step-actions flex gap-3 mt-4">
+            {% if state and state.web_data and state.web_data.get('stats', {}).get('total_queries', 0) > 0 %}
+            <button onclick="Wizard.regenerate('research', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
+                🔄 Regenerate
+            </button>
+            <button onclick="Wizard.continueToNext('research')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                Continue to Discover →
+            </button>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Score Results Table (shown below tabs when scores exist) -->
-    <div id="score-results-container" class="hidden">
-        <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-white">Score Results</h2>
-                <button 
-                    onclick="loadScoreResults()"
-                    class="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                    Refresh Results
-                </button>
-            </div>
-            
-            <!-- Score Summary -->
-            <div id="score-summary" class="grid grid-cols-3 gap-4 mb-6">
-                <div class="bg-slate-700/50 rounded-lg p-4 text-center">
-                    <div id="avg-score" class="text-3xl font-bold text-white">—</div>
-                    <div class="text-sm text-slate-400">Average Score</div>
-                </div>
-                <div class="bg-slate-700/50 rounded-lg p-4 text-center">
-                    <div id="scored-count" class="text-3xl font-bold text-white">0</div>
-                    <div class="text-sm text-slate-400">Prompts Scored</div>
-                </div>
-                <div class="bg-slate-700/50 rounded-lg p-4 text-center">
-                    <div id="needs-review-count" class="text-3xl font-bold text-yellow-400">0</div>
-                    <div class="text-sm text-slate-400">Needs Review</div>
-                </div>
-            </div>
-            
-            <!-- Results Table -->
-            <div id="score-results-table">
-                <div class="text-center py-8 text-slate-400">Loading scores...</div>
-            </div>
+    <!-- Step 2: Discover -->
+    <div id="step-discover" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="discover" data-status="{{ step_statuses.get('discover', 'locked') }}">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">2. Discover Focus Areas</h3>
+            <span class="px-3 py-1 rounded-full text-xs font-medium
+                {% if step_statuses.get('discover') == 'complete' %}bg-emerald-500/20 text-emerald-400
+                {% elif step_statuses.get('discover') == 'loading' %}bg-blue-500 text-white status-pulse
+                {% elif step_statuses.get('discover') == 'failed' %}bg-red-500/20 text-red-400
+                {% elif step_statuses.get('discover') == 'ready' %}bg-blue-500/20 text-blue-400
+                {% else %}bg-slate-700 text-slate-400{% endif %}">
+                {% if step_statuses.get('discover') == 'complete' %}✓ Complete
+                {% elif step_statuses.get('discover') == 'loading' %}⏳ Loading...
+                {% elif step_statuses.get('discover') == 'failed' %}✗ Failed
+                {% elif step_statuses.get('discover') == 'ready' %}○ Ready
+                {% else %}🛑 Locked{% endif %}
+            </span>
         </div>
+        {% if state and state.focuses %}
+        <p class="text-sm text-slate-400 mb-4">Found {{ state.focuses|length }} focus areas for your brand.</p>
+        <div class="space-y-2 mb-4">
+            {% for focus in state.focuses %}
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
+                <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
+                       value="{{ focus.name }}" data-item-id="{{ focus.name }}" data-step="discover" checked>
+                <span class="text-slate-200 text-sm flex-1">{{ focus.name }}</span>
+                <span class="text-slate-500 text-xs">{{ focus.signal_count or 0 }} signals</span>
+            </label>
+            {% endfor %}
+        </div>
+        {% elif state and state.web_data %}
+        <p class="text-sm text-slate-400 mb-4">Discover focus areas from your research data.</p>
+        <form hx-post="/api/discover" hx-target="#discover-result" hx-indicator="#discover-spinner" hx-trigger="submit">
+            <div class="flex items-center gap-3">
+                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+                    💡 Run Discovery
+                </button>
+                <span id="discover-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
+            </div>
+        </form>
+        <div id="discover-result"></div>
+        {% else %}
+        <p class="text-sm text-slate-500 italic">Complete the Research step first.</p>
+        {% endif %}
+        <div class="step-actions flex gap-3 mt-4">
+            {% if state and state.focuses %}
+            <button onclick="Wizard.regenerate('discover', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
+                🔄 Regenerate
+            </button>
+            <button onclick="Wizard.continueToNext('discover')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                Continue to Generate →
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Step 3: Generate -->
+    <div id="step-generate" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="generate" data-status="{{ step_statuses.get('generate', 'locked') }}">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">3. Generate Prompts</h3>
+            <span class="px-3 py-1 rounded-full text-xs font-medium
+                {% if step_statuses.get('generate') == 'complete' %}bg-emerald-500/20 text-emerald-400
+                {% elif step_statuses.get('generate') == 'loading' %}bg-blue-500 text-white status-pulse
+                {% elif step_statuses.get('generate') == 'failed' %}bg-red-500/20 text-red-400
+                {% elif step_statuses.get('generate') == 'ready' %}bg-blue-500/20 text-blue-400
+                {% else %}bg-slate-700 text-slate-400{% endif %}">
+                {% if step_statuses.get('generate') == 'complete' %}✓ Complete
+                {% elif step_statuses.get('generate') == 'loading' %}⏳ Loading...
+                {% elif step_statuses.get('generate') == 'failed' %}✗ Failed
+                {% elif step_statuses.get('generate') == 'ready' %}○ Ready
+                {% else %}🛑 Locked{% endif %}
+            </span>
+        </div>
+        {% set total_prompts = state.focuses|map(attribute='prompts')|map('length')|sum if state and state.focuses else 0 %}
+        {% if total_prompts > 0 %}
+        <p class="text-sm text-slate-400 mb-4">Generated {{ total_prompts }} prompts across {{ state.focuses|length }} focus areas.</p>
+        <div class="space-y-4 mb-4">
+            {% for focus in state.focuses %}
+            {% if focus.prompts %}
+            <div>
+                <h4 class="text-sm font-medium text-slate-300 mb-2">{{ focus.name }}</h4>
+                <div class="space-y-2">
+                    {% for prompt in focus.prompts[:5] %}
+                    <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
+                        <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
+                               value="{{ focus.name }}-{{ prompt.text[:30] }}" data-item-id="{{ focus.name }}-{{ prompt.text[:30] }}" data-step="generate" checked>
+                        <span class="text-slate-200 text-sm flex-1">{{ prompt.text }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% elif state and state.focuses %}
+        <p class="text-sm text-slate-400 mb-4">Generate prompt variants for each focus area.</p>
+        <form hx-post="/api/generate" hx-target="#generate-result" hx-indicator="#generate-spinner" hx-trigger="submit">
+            <div class="flex items-center gap-3">
+                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+                    ✨ Generate Prompts
+                </button>
+                <span id="generate-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
+            </div>
+        </form>
+        <div id="generate-result"></div>
+        {% else %}
+        <p class="text-sm text-slate-500 italic">Complete the Discover step first.</p>
+        {% endif %}
+        <div class="step-actions flex gap-3 mt-4">
+            {% if total_prompts > 0 %}
+            <button onclick="Wizard.regenerate('generate', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
+                🔄 Regenerate All
+            </button>
+            <button onclick="Wizard.continueToNext('generate')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                Continue to Score →
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Step 4: Score -->
+    <div id="step-score" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="score" data-status="{{ step_statuses.get('score', 'locked') }}">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">4. Score Prompts</h3>
+            <span class="px-3 py-1 rounded-full text-xs font-medium
+                {% if step_statuses.get('score') == 'complete' %}bg-emerald-500/20 text-emerald-400
+                {% elif step_statuses.get('score') == 'loading' %}bg-blue-500 text-white status-pulse
+                {% elif step_statuses.get('score') == 'failed' %}bg-red-500/20 text-red-400
+                {% elif step_statuses.get('score') == 'ready' %}bg-blue-500/20 text-blue-400
+                {% else %}bg-slate-700 text-slate-400{% endif %}">
+                {% if step_statuses.get('score') == 'complete' %}✓ Complete
+                {% elif step_statuses.get('score') == 'loading' %}⏳ Loading...
+                {% elif step_statuses.get('score') == 'failed' %}✗ Failed
+                {% elif step_statuses.get('score') == 'ready' %}○ Ready
+                {% else %}🛑 Locked{% endif %}
+            </span>
+        </div>
+        {% set scored_prompts = state.focuses|map(attribute='prompts')|map('selectattr', 'overall_score', 'gt', 0)|list|sum(start=[]) if state and state.focuses else [] %}
+        {% if scored_prompts|length > 0 %}
+        <p class="text-sm text-slate-400 mb-4">Scored {{ scored_prompts|length }} prompts. Average score: {{ "%.2f"|format(scored_prompts|map(attribute='overall_score')|sum / scored_prompts|length) }}.</p>
+        <div class="space-y-2 mb-4 max-h-64 overflow-y-auto">
+            {% for focus in state.focuses %}
+            {% for prompt in focus.prompts %}
+            {% if prompt.overall_score > 0 %}
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
+                <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
+                       value="{{ focus.name }}-{{ prompt.text[:30] }}" data-item-id="{{ focus.name }}-{{ prompt.text[:30] }}" data-step="score" checked>
+                <span class="px-2 py-0.5 rounded text-xs font-medium
+                    {% if prompt.overall_score >= 0.6 %}bg-emerald-500/20 text-emerald-400
+                    {% elif prompt.overall_score >= 0.3 %}bg-amber-500/20 text-amber-400
+                    {% else %}bg-red-500/20 text-red-400{% endif %}">{{ "%.2f"|format(prompt.overall_score) }}</span>
+                <span class="text-slate-200 text-sm flex-1 truncate">{{ prompt.text }}</span>
+            </label>
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+        </div>
+        {% elif state and state.focuses and state.focuses|map(attribute='prompts')|map('length')|sum > 0 %}
+        <p class="text-sm text-slate-400 mb-4">Score all prompts for brand relevance and mention likelihood.</p>
+        <form hx-post="/api/score" hx-target="#score-result" hx-indicator="#score-spinner" hx-trigger="submit">
+            <div class="flex items-center gap-3">
+                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+                    📊 Run Scoring
+                </button>
+                <span id="score-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
+            </div>
+        </form>
+        <div id="score-result"></div>
+        {% else %}
+        <p class="text-sm text-slate-500 italic">Complete the Generate step first.</p>
+        {% endif %}
+        <div class="step-actions flex gap-3 mt-4">
+            {% if scored_prompts|length > 0 %}
+            <button onclick="Wizard.regenerate('score', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
+                🔄 Re-score
+            </button>
+            <button onclick="Wizard.continueToNext('score')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                Continue to Export →
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Step 5: Export -->
+    <div id="step-export" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="export" data-status="{{ step_statuses.get('export', 'locked') }}">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">5. Export Results</h3>
+            <span class="px-3 py-1 rounded-full text-xs font-medium
+                {% if scored_prompts|length > 0 %}bg-emerald-500/20 text-emerald-400
+                {% elif state and state.focuses %}bg-blue-500/20 text-blue-400
+                {% else %}bg-slate-700 text-slate-400{% endif %}">
+                {% if scored_prompts|length > 0 %}✓ Ready
+                {% elif state and state.focuses %}○ Ready
+                {% else %}🛑 Locked{% endif %}
+            </span>
+        </div>
+        {% if state and state.focuses %}
+        <p class="text-sm text-slate-400 mb-4">Download your project data as JSON or CSV.</p>
+        <div class="flex items-center gap-3">
+            <a href="/api/export/download/json" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+                📥 Download JSON
+            </a>
+            <a href="/api/export/download/csv" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
+                📥 Download CSV
+            </a>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-500 italic">Complete previous steps to enable export.</p>
+        {% endif %}
     </div>
 </div>
 
-<script>
-    // Phase configuration
-    const phases = ['research', 'discover', 'generate', 'score', 'export'];
-    let activeTab = 'research';
-    let isRunningAll = false;
-    let statusPollInterval = null;
-    let eventSource = null;
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-        fetchPipelineStatus();
-        // Auto-load the first tab
-        htmx.trigger('#tab-research', 'click');
-    });
-
-    // Refresh current tab content when a phase completes
-    document.body.addEventListener('phaseComplete', function(evt) {
-        const { phase, completed } = evt.detail;
-        if (completed) {
-            fetchPipelineStatus();
-            // Re-fetch current tab to show updated content
-            const currentTabBtn = document.getElementById(`tab-${activeTab}`);
-            if (currentTabBtn) {
-                htmx.trigger(currentTabBtn, 'click');
-            }
-        }
-    });
-
-    // Tab switching
-    function switchTab(tabName) {
-        activeTab = tabName;
-        phases.forEach(phase => {
-            const tab = document.getElementById(`tab-${phase}`);
-            if (phase === tabName) {
-                tab.className = tab.className
-                    .replace('border-transparent', 'border-blue-500')
-                    .replace('text-slate-400', 'text-blue-400');
-            } else {
-                tab.className = tab.className
-                    .replace('border-blue-500', 'border-transparent')
-                    .replace('text-blue-400', 'text-slate-400');
-            }
-        });
-        
-        // Show/hide score results container based on tab
-        const scoreContainer = document.getElementById('score-results-container');
-        if (tabName === 'score') {
-            scoreContainer.classList.remove('hidden');
-            loadScoreResults();
-        } else {
-            scoreContainer.classList.add('hidden');
-        }
-    }
-
-    // Fetch pipeline status
-    async function fetchPipelineStatus() {
-        try {
-            const response = await fetch('/api/pipeline/status');
-            if (response.ok) {
-                const status = await response.json();
-                updatePhaseBadges(status);
-                updateOverallProgress(status);
-            }
-        } catch (e) {
-            // Graceful degradation - status endpoint may not exist yet
-            console.log('Pipeline status not available');
-        }
-    }
-
-    // Update phase badges based on status
-    function updatePhaseBadges(status) {
-        phases.forEach(phase => {
-            const badge = document.getElementById(`badge-${phase}`);
-            if (!badge) return;
-            
-            const phaseStatus = status[phase] || {};
-            const isCompleted = phaseStatus.completed || false;
-            
-            // Reset classes
-            badge.className = 'w-2 h-2 rounded-full';
-            
-            if (isCompleted) {
-                badge.className += ' bg-emerald-500';
-                badge.title = 'Completed';
-            } else if (phaseStatus.count > 0) {
-                badge.className += ' bg-amber-500';
-                badge.title = 'Has partial results';
-            } else {
-                badge.className += ' bg-slate-500';
-                badge.title = 'Not started';
-            }
-        });
-
-        // Update overall status badge
-        const statusBadge = document.getElementById('pipeline-status-badge');
-        const completedCount = phases.filter(p => status[p] && status[p].completed).length;
-        if (completedCount === phases.length) {
-            statusBadge.textContent = '✓ All Complete';
-            statusBadge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-            statusBadge.classList.remove('hidden');
-        } else if (completedCount > 0) {
-            statusBadge.textContent = `${completedCount}/${phases.length} Complete`;
-            statusBadge.className = 'px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30';
-            statusBadge.classList.remove('hidden');
-        }
-    }
-
-    // Update overall progress bar
-    function updateOverallProgress(status) {
-        const progressContainer = document.getElementById('overall-progress-container');
-        const progressBar = document.getElementById('overall-progress-bar');
-        const progressText = document.getElementById('overall-progress-text');
-        
-        if (!status) return;
-        
-        // Calculate total progress
-        let totalItems = 0;
-        let completedItems = 0;
-        
-        phases.forEach(phase => {
-            const phaseStatus = status[phase] || {};
-            if (phaseStatus.total) {
-                totalItems += phaseStatus.total;
-                completedItems += phaseStatus.count || 0;
-            }
-        });
-        
-        const percent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-        
-        progressContainer.classList.remove('hidden');
-        progressBar.style.width = `${percent}%`;
-        progressText.textContent = `${percent}%`;
-        
-        if (percent >= 100) {
-            progressBar.classList.remove('from-blue-600', 'to-cyan-500');
-            progressBar.classList.add('from-emerald-600', 'to-emerald-400');
-        } else {
-            progressBar.classList.remove('from-emerald-600', 'to-emerald-400');
-            progressBar.classList.add('from-blue-600', 'to-cyan-500');
-        }
-    }
-
-    // Start run all
-    async function startRunAll() {
-        if (isRunningAll) return;
-        
-        const runBtn = document.getElementById('run-all-btn');
-        const cancelBtn = document.getElementById('cancel-run-btn');
-        const runText = document.getElementById('run-all-text');
-        const runIcon = document.getElementById('run-all-icon');
-        const runSpinner = document.getElementById('run-all-spinner');
-        const phaseInfo = document.getElementById('run-all-phase');
-        const currentPhase = document.getElementById('current-phase-name');
-        
-        // Set running state
-        isRunningAll = true;
-        runBtn.disabled = true;
-        cancelBtn.classList.remove('hidden');
-        runText.textContent = 'Running...';
-        runIcon.classList.add('hidden');
-        runSpinner.classList.remove('hidden');
-        phaseInfo.classList.remove('hidden');
-        currentPhase.textContent = 'Starting...';
-        
-        // Disable phase buttons
-        phases.forEach(phase => {
-            const tab = document.getElementById(`tab-${phase}`);
-            if (tab) tab.disabled = true;
-        });
-        
-        try {
-            // Start SSE connection
-            eventSource = new EventSource('/api/pipeline/run-all');
-            
-            eventSource.addEventListener('phase', (event) => {
-                const data = JSON.parse(event.data);
-                handlePhaseEvent(data);
-            });
-            
-            eventSource.addEventListener('done', (event) => {
-                const data = JSON.parse(event.data);
-                handleDoneEvent(data);
-            });
-            
-            eventSource.addEventListener('error', (event) => {
-                console.error('SSE error:', event);
-                cancelPipelineRun();
-            });
-            
-            eventSource.onerror = () => {
-                // Connection closed or error
-                if (isRunningAll) {
-                    // Wait a moment then check status
-                    setTimeout(() => {
-                        fetchPipelineStatus();
-                        stopRunAllUI();
-                    }, 500);
-                }
-            };
-            
-        } catch (e) {
-            console.error('Failed to start pipeline:', e);
-            cancelPipelineRun();
-        }
-    }
-
-    // Handle phase event from SSE
-    function handlePhaseEvent(data) {
-        const { phase, status, message } = data;
-        const currentPhase = document.getElementById('current-phase-name');
-        
-        // Update current phase display
-        currentPhase.textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
-        
-        // Update badge for this phase
-        const badge = document.getElementById(`badge-${phase}`);
-        if (badge) {
-            badge.className = 'w-2 h-2 rounded-full';
-            
-            switch (status) {
-                case 'running':
-                    badge.className += ' bg-blue-500 status-pulse';
-                    badge.title = 'Running';
-                    break;
-                case 'completed':
-                    badge.className += ' bg-emerald-500';
-                    badge.title = 'Completed';
-                    break;
-                case 'skipped':
-                    badge.className += ' bg-emerald-500';
-                    badge.title = 'Already complete';
-                    break;
-                case 'error':
-                    badge.className += ' bg-red-500';
-                    badge.title = message || 'Error';
-                    break;
-            }
-        }
-        
-        // Refresh status periodically
-        fetchPipelineStatus();
-    }
-
-    // Handle done event from SSE
-    function handleDoneEvent(data) {
-        const { status } = data;
-        
-        if (status === 'completed') {
-            updateCompletedUI();
-        } else {
-            // Error occurred
-            console.error('Pipeline failed:', data);
-        }
-        
-        // Final status refresh
-        fetchPipelineStatus();
-        stopRunAllUI();
-    }
-
-    // Stop run-all UI state
-    function stopRunAllUI() {
-        const runBtn = document.getElementById('run-all-btn');
-        const cancelBtn = document.getElementById('cancel-run-btn');
-        const runText = document.getElementById('run-all-text');
-        const runIcon = document.getElementById('run-all-icon');
-        const runSpinner = document.getElementById('run-all-spinner');
-        const phaseInfo = document.getElementById('run-all-phase');
-        
-        isRunningAll = false;
-        runBtn.disabled = false;
-        cancelBtn.classList.add('hidden');
-        runText.textContent = 'Run All Phases';
-        runIcon.classList.remove('hidden');
-        runSpinner.classList.add('hidden');
-        phaseInfo.classList.add('hidden');
-        
-        // Re-enable phase buttons
-        phases.forEach(phase => {
-            const tab = document.getElementById(`tab-${phase}`);
-            if (tab) tab.disabled = false;
-        });
-    }
-
-    // Cancel pipeline run
-    function cancelPipelineRun() {
-        if (eventSource) {
-            eventSource.close();
-            eventSource = null;
-        }
-        
-        stopRunAllUI();
-        fetchPipelineStatus();
-    }
-
-    // Update completed UI
-    function updateCompletedUI() {
-        const runText = document.getElementById('run-all-text');
-        const runIcon = document.getElementById('run-all-icon');
-        const progressBar = document.getElementById('overall-progress-bar');
-        const progressText = document.getElementById('overall-progress-text');
-        
-        runText.textContent = '✓ All Complete';
-        runIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>';
-        
-        progressBar.style.width = '100%';
-        progressText.textContent = '100%';
-        progressBar.classList.remove('from-blue-600', 'to-cyan-500');
-        progressBar.classList.add('from-emerald-600', 'to-emerald-400');
-        
-        // Refresh score results if on score tab
-        if (activeTab === 'score') {
-            loadScoreResults();
-        }
-    }
-
-    // Load score results
-    async function loadScoreResults() {
-        try {
-            const response = await fetch('/api/pipeline/scores');
-            if (response.ok) {
-                const data = await response.json();
-                renderScoreResults(data);
-            } else {
-                document.getElementById('score-results-table').innerHTML = 
-                    '<div class="text-center py-8 text-slate-400">No scores available yet</div>';
-            }
-        } catch (e) {
-            document.getElementById('score-results-table').innerHTML = 
-                '<div class="text-center py-8 text-slate-400">Error loading scores</div>';
-        }
-    }
-
-    // Render score results table
-    function renderScoreResults(scores) {
-        const container = document.getElementById('score-results-table');
-        
-        // Calculate summary stats
-        const count = scores.length;
-        const avgScore = count > 0 ? scores.reduce((sum, s) => sum + s.score, 0) / count : 0;
-        
-        // Update summary
-        const avgScoreEl = document.getElementById('avg-score');
-        const scoredCountEl = document.getElementById('scored-count');
-        const needsReviewEl = document.getElementById('needs-review-count');
-        
-        avgScoreEl.textContent = avgScore.toFixed(2);
-        avgScoreEl.className = 'text-3xl font-bold ' + getScoreColorClass(avgScore);
-        scoredCountEl.textContent = count;
-        needsReviewEl.textContent = 0; // Backend doesn't track this in the list response
-        
-        // Render table
-        if (!scores || scores.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-8 text-slate-400">
-                    <svg class="w-10 h-10 mx-auto mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    <p>No scores available yet</p>
-                    <p class="text-sm text-slate-500 mt-1">Run the Score phase to see results</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let tableHTML = `
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-slate-700">
-                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Score</th>
-                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Prompt</th>
-                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Method</th>
-                            <th class="text-left py-3 px-4 text-slate-400 font-medium">Focus</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        scores.forEach(score => {
-            const scoreClass = getScoreColorClass(score.score);
-            const scoreBg = getScoreBgClass(score.score);
-            const truncatedPrompt = score.prompt.length > 80 ? score.prompt.substring(0, 80) + '...' : score.prompt;
-            
-            tableHTML += `
-                <tr class="border-b border-slate-700/50 hover:bg-slate-700/30 transition-colors">
-                    <td class="py-3 px-4">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${scoreBg} ${scoreClass}">
-                            ${score.score.toFixed(2)}
-                        </span>
-                    </td>
-                    <td class="py-3 px-4 text-slate-200 max-w-md truncate" title="${score.prompt}">
-                        ${truncatedPrompt}
-                    </td>
-                    <td class="py-3 px-4">
-                        <span class="px-2 py-0.5 rounded bg-slate-700 text-slate-300 text-xs">
-                            ${score.method || 'llm'}
-                        </span>
-                    </td>
-                    <td class="py-3 px-4 text-slate-400">${score.focus}</td>
-                </tr>
-            `;
-        });
-        
-        tableHTML += '</tbody></table></div>';
-        container.innerHTML = tableHTML;
-    }
-
-    // Get color class based on score
-    function getScoreColorClass(score) {
-        if (score >= 0.6) return 'text-emerald-400';
-        if (score >= 0.3) return 'text-amber-400';
-        return 'text-red-400';
-    }
-
-    // Get background class based on score
-    function getScoreBgClass(score) {
-        if (score >= 0.6) return 'bg-emerald-500/20';
-        if (score >= 0.3) return 'bg-amber-500/20';
-        return 'bg-red-500/20';
-    }
-
-    // Periodic status refresh
-    setInterval(fetchPipelineStatus, 10000);
-</script>
+<script src="/static/js/wizard.js"></script>
 {% endblock %}

@@ -454,7 +454,8 @@ async def keep_items(request: Request, step: str):
         # Research items are queries - mark which to keep in web_data
         if state.web_data and "queries" in state.web_data:
             all_queries = state.web_data.get("queries", [])
-            kept = [q for q in all_queries if str(q.get("id", "")) in keep_ids or q.get("text", "") in keep_ids]
+            keep_set = set(keep_ids)
+            kept = [q for q in all_queries if str(q.get("id", "")) in keep_set or q.get("text", "") in keep_set]
             discarded = len(all_queries) - len(kept)
             state.web_data["queries"] = kept
             state.web_data["stats"]["total_queries"] = len(kept)
@@ -464,7 +465,8 @@ async def keep_items(request: Request, step: str):
     elif step == "discover":
         # Keep only selected focuses
         all_focuses = state.focuses
-        kept = [f for f in all_focuses if str(f.name) in keep_ids]
+        keep_set = set(keep_ids)
+        kept = [f for f in all_focuses if str(f.name) in keep_set]
         discarded = len(all_focuses) - len(kept)
         state.focuses = kept
         save_state(state)

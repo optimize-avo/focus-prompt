@@ -19,6 +19,9 @@ def create_app() -> FastAPI:
 
     # Mount templates
     app.state.templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    from fastapi.staticfiles import StaticFiles
+    STATIC_DIR = Path(__file__).parent / "static"
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
     # Register routes
     from fp.web.routes.pages import router as pages_router

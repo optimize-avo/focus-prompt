@@ -10,6 +10,11 @@ import httpx
 from fp.llm import completion_json
 from fp.models import Brand
 
+LANGUAGE_INSTRUCTION = {
+    "id": "Queries MUST be in Indonesian (Bahasa Indonesia).",
+    "en": "Queries MUST be in English.",
+    "mix": "Queries should be in a mix of Indonesian and English (as real users do).",
+}
 
 PROBLEM_DISCOVERY_PROMPT = """You are a user research analyst. Given a brand and its service categories, identify what real users search for or ask about when they need these services.
 

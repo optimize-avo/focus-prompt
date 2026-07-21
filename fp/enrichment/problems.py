@@ -149,6 +149,7 @@ async def discover_problems_enriched(
     """
     # Build context from real data
     autocomplete_sample = web_data.get("autocomplete", [])[:30]
+    exa_sample = web_data.get("exa_results", [])[:10]
     all_queries = web_data.get("all_queries", [])[:50]
 
     real_data_context = {
@@ -158,6 +159,7 @@ async def discover_problems_enriched(
         "competitors": brand.competitors,
         "real_data": {
             "autocomplete_suggestions": autocomplete_sample,
+            "exa_search_results": exa_sample,
             "merged_queries": all_queries,
             "stats": web_data.get("stats", {}),
         },

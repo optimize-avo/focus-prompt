@@ -85,3 +85,12 @@ const Wizard = {
 };
 
 window.Wizard = Wizard;
+
+// Enable "Lanjut →" button when a phase completes (fired via HX-Trigger header)
+document.body.addEventListener('phaseComplete', (e) => {
+    const { completed } = e.detail || {};
+    if (completed) {
+        const nextBtn = document.querySelector('button[onclick="Wizard.nextStep()"]');
+        if (nextBtn) nextBtn.disabled = false;
+    }
+});

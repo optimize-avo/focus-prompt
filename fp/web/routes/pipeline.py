@@ -174,7 +174,7 @@ async def pipeline_scores(request: Request):
     return scored
 
 
-@router.post("/pipeline/run-all")
+@router.get("/pipeline/run-all")
 async def run_all_phases(request: Request):
     """Run all pipeline phases sequentially via SSE stream, skipping completed phases."""
     state = get_state()

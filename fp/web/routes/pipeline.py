@@ -368,7 +368,7 @@ async def run_generate(request: Request):
         return HTMLResponse('<p class="text-red-600">No focuses. Run discover first.</p>')
 
     try:
-        updated = generate_all_prompts(state.config.brand, state.focuses, state.config.prompt_mode)
+        updated = generate_all_prompts(state.config.brand, state.focuses, state.config.prompt_mode, language=state.config.language)
         state.focuses = updated
         save_state(state)
         total = sum(len(f.prompts) for f in state.focuses)

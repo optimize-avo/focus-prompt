@@ -185,7 +185,7 @@ async def get_step_items(request: Request, step: str):
 
     if step == "research":
         if state.web_data:
-            queries = state.web_data.get("autocomplete", [])
+            queries = state.web_data.get("all_queries", state.web_data.get("autocomplete", []))
             selected = state.step_selections.get("research", queries)
             items = [
                 {"id": q, "text": q, "selected": q in selected}
@@ -532,15 +532,15 @@ async def keep_items(request: Request, step: str):
         keep_ids = []
 
     if step == "research":
-        # Research items are queries - mark which to keep in web_data
-        if state.web_data and "queries" in state.web_data:
+        # Research items are queries — filter all_queries (autocomplete + EXA)
+        if state.web_data:
             keep_set = set(keep_ids)
             if not keep_set:
                 return {"status": "error", "message": "Must keep at least one query"}
-            all_queries = state.web_data.get("queries", [])
-            kept = [q for q in all_queries if str(q.get("id", "")) in keep_set or q.get("text", "") in keep_set]
-            discarded = len(all_queries) - len(kept)
-            state.web_data["queries"] = kept
+            source_queries = state.web_data.get("all_queries", state.web_data.get("autocomplete", []))
+            kept = [q for q in source_queries if q in keep_set or str(q) in keep_set]
+            discarded = len(source_queries) - len(kept)
+            state.web_data["all_queries"] = kept
             state.web_data["stats"]["total_queries"] = len(kept)
             save_state(state)
             return {"status": "ok", "kept": len(kept), "discarded": discarded}

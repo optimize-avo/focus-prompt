@@ -60,7 +60,7 @@ Rules:
 - Each prompt MUST include the brand name "{brand_name}"
 - 4-6 prompts per focus
 - Varied intent and phrasing
-- OUTPUT LANGUAGE: Write prompts ONLY in Bahasa Indonesia or English. NEVER use Chinese characters (汉字), Japanese, Korean, Cyrillic, Thai, or any non-Latin script except Arabic numerals. If you are unsure about a word, use the Indonesian or English equivalent.
+- {language_instruction}
 """
 
 

@@ -1,0 +1,47 @@
+<!-- Reusable step card component -->
+<!-- Expects: step_name, status (locked|ready|loading|complete|failed), summary, items (list), show_checkboxes (bool), step_id -->
+<div id="step-{{ step_id }}" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="{{ step_id }}" data-status="{{ status }}">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-white">{{ step_name }}</h3>
+        <span class="step-badge
+            {% if status == 'complete' %}bg-emerald-500/20 text-emerald-400
+            {% elif status == 'loading' %}bg-blue-500 text-white status-pulse
+            {% elif status == 'failed' %}bg-red-500/20 text-red-400
+            {% elif status == 'ready' %}bg-blue-500/20 text-blue-400
+            {% else %}bg-slate-700 text-slate-400{% endif %}
+            px-3 py-1 rounded-full text-xs font-medium">
+            {% if status == 'locked' %}🔒 Locked
+            {% elif status == 'ready' %}○ Ready
+            {% elif status == 'loading' %}⏳ Loading...
+            {% elif status == 'complete' %}✓ Complete
+            {% elif status == 'failed' %}✗ Failed{% endif %}
+        </span>
+    </div>
+
+    <!-- Summary -->
+    {% if summary %}
+    <p class="text-sm text-slate-400 mb-4">{{ summary }}</p>
+    {% endif %}
+
+    <!-- Item List (when complete) -->
+    {% if show_checkboxes and items %}
+    <div class="space-y-2 mb-4">
+        {% for item in items %}
+        <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer">
+            <input type="checkbox" 
+                   class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
+                   data-item-id="{{ item.id }}" 
+                   {% if item.checked %}checked{% endif %}>
+            <span class="text-slate-200 text-sm">{{ item.text }}</span>
+            {% if item.meta %}<span class="text-slate-500 text-xs ml-auto">{{ item.meta }}</span>{% endif %}
+        </label>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Actions Slot -->
+    <div class="step-actions flex gap-3 mt-4">
+        {{ actions|safe }}
+    </div>
+</div>

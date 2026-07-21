@@ -28,7 +28,7 @@ OUTPUT FORMAT — Return a JSON object with this exact structure:
 {{
   "problems": [
     {{
-      "category": "{service_category_name}",
+      "category": "{{service_category_name}}",
       "problems": [
         {{
           "pain_point": "high cost / not trusted / hard to find",

@@ -5,42 +5,41 @@
 {% endblock %}
 {% block content %}
 {% set step_statuses = step_statuses|default({}) %}
-<div class="space-y-6">
-    <!-- Header -->
-    <h1 class="text-2xl font-bold text-white">Pipeline</h1>
-    <p class="text-slate-400 text-sm">Run the research pipeline to discover and generate prompts for your brand.</p>
+{% set current_step = current_step|default('research') %}
+{% set steps = [
+    ('research', 'Riset', '1'),
+    ('discover', 'Temukan', '2'),
+    ('generate', 'Generate', '3'),
+    ('score', 'Skor', '4'),
+    ('export', 'Ekspor', '5')
+] %}
 
-    <!-- Step Indicator Bar -->
-    <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-4 overflow-x-auto">
-        <div class="flex items-center justify-between min-w-max">
-            {% set steps = [
-                ('research', 'Research'),
-                ('discover', 'Discover'),
-                ('generate', 'Generate'),
-                ('score', 'Score'),
-                ('export', 'Export')
-            ] %}
-            {% for step_id, step_name in steps %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Progress Indicator -->
+    <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-4">
+        <div class="flex items-center justify-between">
+            {% for step_id, step_name, step_num in steps %}
             <div class="flex items-center">
-                <div class="flex flex-col items-center">
-                    <div class="step-indicator 
-                        {% if step_statuses.get(step_id, 'locked') == 'complete' %}bg-emerald-500 text-white
-                        {% elif step_statuses.get(step_id, 'locked') == 'loading' %}bg-blue-500 text-white status-pulse
-                        {% elif step_statuses.get(step_id, 'locked') == 'failed' %}bg-red-500 text-white
-                        {% elif step_statuses.get(step_id, 'locked') == 'ready' %}bg-blue-500/30 text-blue-400 border-2 border-blue-500
-                        {% else %}bg-slate-700 text-slate-400{% endif %}
-                        w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold">
-                        {% if step_statuses.get(step_id, 'locked') == 'complete' %}✓
-                        {% elif step_statuses.get(step_id, 'locked') == 'loading' %}⏳
-                        {% elif step_statuses.get(step_id, 'locked') == 'failed' %}✗
-                        {% elif step_statuses.get(step_id, 'locked') == 'ready' %}{{ loop.index }}
-                        {% else %}🛑{% endif %}
+                <button onclick="Wizard.goToStep('{{ step_id }}')" 
+                        class="step-btn flex flex-col items-center group cursor-pointer
+                               {% if current_step == step_id %}opacity-100
+                               {% elif step_statuses.get(step_id, {}).get('completed', false) %}opacity-75
+                               {% else %}opacity-50{% endif %}"
+                        {% if current_step == step_id %}aria-current="step"{% endif %}>
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all
+                                {% if step_statuses.get(step_id, {}).get('completed', false) %}bg-emerald-500 text-white
+                                {% elif current_step == step_id %}bg-blue-500 text-white ring-4 ring-blue-500/30
+                                {% else %}bg-slate-700 text-slate-400 group-hover:bg-slate-600{% endif %}">
+                        {% if step_statuses.get(step_id, {}).get('completed', false) %}✓
+                        {% else %}{{ step_num }}{% endif %}
                     </div>
-                    <span class="text-xs text-slate-400 mt-1">{{ step_name }}</span>
-                </div>
+                    <span class="text-xs mt-1 {% if current_step == step_id %}text-white font-medium{% else %}text-slate-400{% endif %}">
+                        {{ step_name }}
+                    </span>
+                </button>
                 {% if not loop.last %}
                 <div class="w-12 h-0.5 mx-2 
-                    {% if step_statuses.get(step_id, 'locked') == 'complete' %}bg-emerald-500
+                    {% if step_statuses.get(step_id, {}).get('completed', false) %}bg-emerald-500
                     {% else %}bg-slate-700{% endif %}"></div>
                 {% endif %}
             </div>
@@ -48,285 +47,33 @@
         </div>
     </div>
 
-    <!-- Step 1: Research -->
-    <div id="step-research" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="research" data-status="{{ step_statuses.get('research', 'locked') }}">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white">1. Research Queries</h3>
-            <span class="px-3 py-1 rounded-full text-xs font-medium
-                {% if step_statuses.get('research') == 'complete' %}bg-emerald-500/20 text-emerald-400
-                {% elif step_statuses.get('research') == 'loading' %}bg-blue-500 text-white status-pulse
-                {% elif step_statuses.get('research') == 'failed' %}bg-red-500/20 text-red-400
-                {% elif step_statuses.get('research') == 'ready' %}bg-blue-500/20 text-blue-400
-                {% else %}bg-slate-700 text-slate-400{% endif %}">
-                {% if step_statuses.get('research') == 'complete' %}✓ Complete
-                {% elif step_statuses.get('research') == 'loading' %}⏳ Loading...
-                {% elif step_statuses.get('research') == 'failed' %}✗ Failed
-                {% elif step_statuses.get('research') == 'ready' %}○ Ready
-                {% else %}🛑 Locked{% endif %}
-            </span>
-        </div>
-        {% if state and state.web_data and state.web_data.get('stats', {}).get('total_queries', 0) > 0 %}
-        <p class="text-sm text-slate-400 mb-4">Generated {{ state.web_data['stats']['total_queries'] }} queries for brand analysis.</p>
-        <div class="space-y-2 mb-4">
-            {% for query in state.web_data.get('autocomplete', [])[:10] %}
-            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
-                <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
-                       value="{{ loop.index }}" data-item-id="{{ loop.index }}" data-step="research" checked>
-                <span class="text-slate-200 text-sm flex-1">{{ query }}</span>
-            </label>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-sm text-slate-400 mb-4">Fetch real user queries from Google Autocomplete to start.</p>
-        <form hx-post="/api/research" hx-target="#research-result" hx-indicator="#research-spinner" hx-trigger="submit">
-            <div class="mb-3">
-                <label class="block text-sm font-medium text-slate-300 mb-1">Extra seed queries (optional)</label>
-                <input type="text" name="extra" placeholder="seed1, seed2" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="flex items-center gap-3">
-                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-                    🔍 Run Research
-                </button>
-                <span id="research-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
-            </div>
-        </form>
-        <div id="research-result"></div>
-        {% endif %}
-        <div class="step-actions flex gap-3 mt-4">
-            {% if state and state.web_data and state.web_data.get('stats', {}).get('total_queries', 0) > 0 %}
-            <button onclick="Wizard.regenerate('research', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
-                🔄 Regenerate
-            </button>
-            <button onclick="Wizard.continueToNext('research')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                Continue to Discover →
-            </button>
-            {% endif %}
-        </div>
+    <!-- Step Content -->
+    <div id="step-content" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 min-h-[400px]">
+        {% include "partials/" ~ current_step ~ ".html" %}
     </div>
 
-    <!-- Step 2: Discover -->
-    <div id="step-discover" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="discover" data-status="{{ step_statuses.get('discover', 'locked') }}">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white">2. Discover Focus Areas</h3>
-            <span class="px-3 py-1 rounded-full text-xs font-medium
-                {% if step_statuses.get('discover') == 'complete' %}bg-emerald-500/20 text-emerald-400
-                {% elif step_statuses.get('discover') == 'loading' %}bg-blue-500 text-white status-pulse
-                {% elif step_statuses.get('discover') == 'failed' %}bg-red-500/20 text-red-400
-                {% elif step_statuses.get('discover') == 'ready' %}bg-blue-500/20 text-blue-400
-                {% else %}bg-slate-700 text-slate-400{% endif %}">
-                {% if step_statuses.get('discover') == 'complete' %}✓ Complete
-                {% elif step_statuses.get('discover') == 'loading' %}⏳ Loading...
-                {% elif step_statuses.get('discover') == 'failed' %}✗ Failed
-                {% elif step_statuses.get('discover') == 'ready' %}○ Ready
-                {% else %}🛑 Locked{% endif %}
-            </span>
-        </div>
-        {% if state and state.focuses %}
-        <p class="text-sm text-slate-400 mb-4">Found {{ state.focuses|length }} focus areas for your brand.</p>
-        <div class="space-y-2 mb-4">
-            {% for focus in state.focuses %}
-            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
-                <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
-                       value="{{ focus.name }}" data-item-id="{{ focus.name }}" data-step="discover" checked>
-                <span class="text-slate-200 text-sm flex-1">{{ focus.name }}</span>
-                <span class="text-slate-500 text-xs">{{ focus.signal_count or 0 }} signals</span>
-            </label>
-            {% endfor %}
-        </div>
-        {% elif state and state.web_data %}
-        <p class="text-sm text-slate-400 mb-4">Discover focus areas from your research data.</p>
-        <form hx-post="/api/discover" hx-target="#discover-result" hx-indicator="#discover-spinner" hx-trigger="submit">
-            <div class="flex items-center gap-3">
-                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-                    💡 Run Discovery
-                </button>
-                <span id="discover-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
-            </div>
-        </form>
-        <div id="discover-result"></div>
-        {% else %}
-        <p class="text-sm text-slate-500 italic">Complete the Research step first.</p>
-        {% endif %}
-        <div class="step-actions flex gap-3 mt-4">
-            {% if state and state.focuses %}
-            <button onclick="Wizard.regenerate('discover', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
-                🔄 Regenerate
-            </button>
-            <button onclick="Wizard.continueToNext('discover')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                Continue to Generate →
-            </button>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Step 3: Generate -->
-    <div id="step-generate" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="generate" data-status="{{ step_statuses.get('generate', 'locked') }}">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white">3. Generate Prompts</h3>
-            <span class="px-3 py-1 rounded-full text-xs font-medium
-                {% if step_statuses.get('generate') == 'complete' %}bg-emerald-500/20 text-emerald-400
-                {% elif step_statuses.get('generate') == 'loading' %}bg-blue-500 text-white status-pulse
-                {% elif step_statuses.get('generate') == 'failed' %}bg-red-500/20 text-red-400
-                {% elif step_statuses.get('generate') == 'ready' %}bg-blue-500/20 text-blue-400
-                {% else %}bg-slate-700 text-slate-400{% endif %}">
-                {% if step_statuses.get('generate') == 'complete' %}✓ Complete
-                {% elif step_statuses.get('generate') == 'loading' %}⏳ Loading...
-                {% elif step_statuses.get('generate') == 'failed' %}✗ Failed
-                {% elif step_statuses.get('generate') == 'ready' %}○ Ready
-                {% else %}🛑 Locked{% endif %}
-            </span>
-        </div>
-        {% set total_prompts = state.focuses|map(attribute='prompts')|map('length')|sum if state and state.focuses else 0 %}
-        {% if total_prompts > 0 %}
-        <p class="text-sm text-slate-400 mb-4">Generated {{ total_prompts }} prompts across {{ state.focuses|length }} focus areas.</p>
-        <div class="space-y-4 mb-4">
-            {% for focus in state.focuses %}
-            {% if focus.prompts %}
-            <div>
-                <h4 class="text-sm font-medium text-slate-300 mb-2">{{ focus.name }}</h4>
-                <div class="space-y-2">
-                    {% for prompt in focus.prompts[:5] %}
-                    <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
-                        <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
-                               value="{{ focus.name }}-{{ prompt.text[:30] }}" data-item-id="{{ focus.name }}-{{ prompt.text[:30] }}" data-step="generate" checked>
-                        <span class="text-slate-200 text-sm flex-1">{{ prompt.text }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-            {% endfor %}
-        </div>
-        {% elif state and state.focuses %}
-        <p class="text-sm text-slate-400 mb-4">Generate prompt variants for each focus area.</p>
-        <form hx-post="/api/generate" hx-target="#generate-result" hx-indicator="#generate-spinner" hx-trigger="submit">
-            <div class="flex items-center gap-3">
-                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-                    ✨ Generate Prompts
-                </button>
-                <span id="generate-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
-            </div>
-        </form>
-        <div id="generate-result"></div>
-        {% else %}
-        <p class="text-sm text-slate-500 italic">Complete the Discover step first.</p>
-        {% endif %}
-        <div class="step-actions flex gap-3 mt-4">
-            {% if total_prompts > 0 %}
-            <button onclick="Wizard.regenerate('generate', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
-                🔄 Regenerate All
-            </button>
-            <button onclick="Wizard.continueToNext('generate')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                Continue to Score →
-            </button>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Step 4: Score -->
-    <div id="step-score" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="score" data-status="{{ step_statuses.get('score', 'locked') }}">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white">4. Score Prompts</h3>
-            <span class="px-3 py-1 rounded-full text-xs font-medium
-                {% if step_statuses.get('score') == 'complete' %}bg-emerald-500/20 text-emerald-400
-                {% elif step_statuses.get('score') == 'loading' %}bg-blue-500 text-white status-pulse
-                {% elif step_statuses.get('score') == 'failed' %}bg-red-500/20 text-red-400
-                {% elif step_statuses.get('score') == 'ready' %}bg-blue-500/20 text-blue-400
-                {% else %}bg-slate-700 text-slate-400{% endif %}">
-                {% if step_statuses.get('score') == 'complete' %}✓ Complete
-                {% elif step_statuses.get('score') == 'loading' %}⏳ Loading...
-                {% elif step_statuses.get('score') == 'failed' %}✗ Failed
-                {% elif step_statuses.get('score') == 'ready' %}○ Ready
-                {% else %}🛑 Locked{% endif %}
-            </span>
-        </div>
-        {% set scored_prompts = [] %}
-        {% if state and state.focuses %}
-            {% for focus in state.focuses %}
-                {% for prompt in focus.prompts %}
-                    {% if prompt.overall_score is defined and prompt.overall_score > 0 %}
-                        {% set _ = scored_prompts.append(prompt) %}
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-        {% endif %}
-        {% if scored_prompts|length > 0 %}
-        <p class="text-sm text-slate-400 mb-4">Scored {{ scored_prompts|length }} prompts. Average score: {{ "%.2f"|format(scored_prompts|map(attribute='overall_score')|sum / scored_prompts|length) }}.</p>
-        <div class="space-y-2 mb-4 max-h-64 overflow-y-auto">
-            {% for focus in state.focuses %}
-            {% for prompt in focus.prompts %}
-            {% if prompt.overall_score > 0 %}
-            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-700/30 transition-colors cursor-pointer border border-transparent hover:border-slate-700/50">
-                <input type="checkbox" class="step-item-checkbox rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500" 
-                       value="{{ focus.name }}-{{ prompt.text[:30] }}" data-item-id="{{ focus.name }}-{{ prompt.text[:30] }}" data-step="score" checked>
-                <span class="px-2 py-0.5 rounded text-xs font-medium
-                    {% if prompt.overall_score >= 0.6 %}bg-emerald-500/20 text-emerald-400
-                    {% elif prompt.overall_score >= 0.3 %}bg-amber-500/20 text-amber-400
-                    {% else %}bg-red-500/20 text-red-400{% endif %}">{{ "%.2f"|format(prompt.overall_score) }}</span>
-                <span class="text-slate-200 text-sm flex-1 truncate">{{ prompt.text }}</span>
-            </label>
-            {% endif %}
-            {% endfor %}
-            {% endfor %}
-        </div>
-        {% elif state and state.focuses and state.focuses|map(attribute='prompts')|map('length')|sum > 0 %}
-        <p class="text-sm text-slate-400 mb-4">Score all prompts for brand relevance and mention likelihood.</p>
-        <form hx-post="/api/score" hx-target="#score-result" hx-indicator="#score-spinner" hx-trigger="submit">
-            <div class="flex items-center gap-3">
-                <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-                    📊 Run Scoring
-                </button>
-                <span id="score-spinner" class="htmx-indicator text-sm text-slate-400">Running...</span>
-            </div>
-        </form>
-        <div id="score-result"></div>
-        {% else %}
-        <p class="text-sm text-slate-500 italic">Complete the Generate step first.</p>
-        {% endif %}
-        <div class="step-actions flex gap-3 mt-4">
-            {% if scored_prompts|length > 0 %}
-            <button onclick="Wizard.regenerate('score', [])" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
-                🔄 Re-score
-            </button>
-            <button onclick="Wizard.continueToNext('score')" class="continue-btn flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                Continue to Export →
-            </button>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Step 5: Export -->
-    <div id="step-export" class="bg-slate-800 rounded-xl border border-slate-700/50 p-6 mb-4" data-step="export" data-status="{{ step_statuses.get('export', 'locked') }}">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white">5. Export Results</h3>
-            <span class="px-3 py-1 rounded-full text-xs font-medium
-                {% if scored_prompts|length > 0 %}bg-emerald-500/20 text-emerald-400
-                {% elif state and state.focuses %}bg-blue-500/20 text-blue-400
-                {% else %}bg-slate-700 text-slate-400{% endif %}">
-                {% if scored_prompts|length > 0 %}✓ Ready
-                {% elif state and state.focuses %}○ Ready
-                {% else %}🛑 Locked{% endif %}
-            </span>
-        </div>
-        {% if state and state.focuses %}
-        <p class="text-sm text-slate-400 mb-4">Download your project data as JSON or CSV.</p>
-        <div class="flex items-center gap-3">
-            <a href="/api/export/download/json" class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
-                📥 Download JSON
-            </a>
-            <a href="/api/export/download/csv" class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
-                📥 Download CSV
-            </a>
-        </div>
-        {% else %}
-        <p class="text-sm text-slate-500 italic">Complete previous steps to enable export.</p>
-        {% endif %}
+    <!-- Navigation -->
+    <div class="flex items-center justify-between">
+        <button onclick="Wizard.prevStep()" 
+                {% if current_step == 'research' %}disabled{% endif %}
+                class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            ← Kembali
+        </button>
+        <button onclick="Wizard.nextStep()" 
+                {% if not step_statuses.get(current_step, {}).get('completed', false) %}disabled{% endif %}
+                class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {% if current_step == 'export' %}Selesai ✓{% else %}Lanjut →{% endif %}
+        </button>
     </div>
 </div>
 
 <!-- Review modal (reusable across all pipeline steps) -->
-{% include 'partials/modal.html' %}
+{% include "partials/modal.html" %}
 
-<script src="/static/js/wizard.js"></script>
 <script src="/static/js/modal.js"></script>
+<script src="/static/js/wizard.js"></script>
+<script>
+    Wizard.currentStep = '{{ current_step }}';
+    Wizard.stepStatuses = {{ step_statuses | tojson }};
+</script>
 {% endblock %}

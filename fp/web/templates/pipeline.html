@@ -195,6 +195,19 @@
         htmx.trigger('#tab-research', 'click');
     });
 
+    // Refresh current tab content when a phase completes
+    document.body.addEventListener('phaseComplete', function(evt) {
+        const { phase, completed } = evt.detail;
+        if (completed) {
+            fetchPipelineStatus();
+            // Re-fetch current tab to show updated content
+            const currentTabBtn = document.getElementById(`tab-${activeTab}`);
+            if (currentTabBtn) {
+                htmx.trigger(currentTabBtn, 'click');
+            }
+        }
+    });
+
     // Tab switching
     function switchTab(tabName) {
         activeTab = tabName;

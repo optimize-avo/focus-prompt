@@ -1,25 +1,29 @@
-"""Web research orchestrator — fetch real user queries from Google Autocomplete."""
+"""Web research orchestrator — fetch real user queries from Google Autocomplete and EXA."""
 from __future__ import annotations
 
 from fp.models import Brand
 from fp.research.autocomplete import fetch_autocomplete_batch
+from fp.research.exa import fetch_exa_batch
 
 
 async def research_queries(
     brand: Brand,
     extra_queries: list[str] | None = None,
     include_autocomplete: bool = True,
+    include_exa: bool = True,
 ) -> dict:
-    """Research real user queries from Google Autocomplete.
+    """Research real user queries from Google Autocomplete and EXA.
 
     Args:
         brand: Brand info (name, services, competitors)
         extra_queries: Additional seed queries beyond auto-generated ones
         include_autocomplete: Whether to fetch Google Autocomplete
+        include_exa: Whether to fetch EXA search results
 
     Returns:
         Dict with keys:
             - autocomplete: list[str] — Google suggestions
+            - exa_results: list[dict] — EXA search results per query
             - all_queries: list[str] — merged, deduplicated query list
             - stats: dict — counts per source
     """
@@ -51,20 +55,32 @@ async def research_queries(
     seed_queries = seed_queries[:20]
 
     autocomplete_results = []
+    exa_results = []
 
     if include_autocomplete:
         autocomplete_results = await fetch_autocomplete_batch(seed_queries)
 
-    all_queries = list(set(autocomplete_results))
+    if include_exa:
+        exa_results = await fetch_exa_batch(seed_queries[:10])
+
+    # Merge autocomplete + EXA snippets into all_queries
+    all_queries = set(autocomplete_results)
+    for exa_item in exa_results:
+        for result in exa_item.get("results", []):
+            title = result.get("title", "")
+            if title:
+                all_queries.add(title)
 
     stats = {
         "autocomplete_count": len(autocomplete_results),
+        "exa_count": sum(len(item.get("results", [])) for item in exa_results),
         "total_queries": len(all_queries),
         "seed_count": len(seed_queries),
     }
 
     return {
         "autocomplete": autocomplete_results,
-        "all_queries": all_queries,
+        "exa_results": exa_results,
+        "all_queries": list(all_queries),
         "stats": stats,
     }

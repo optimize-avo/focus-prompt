@@ -23,17 +23,18 @@
 
 **Modified Files:**
 - `fp/web/templates/pipeline.html` - Complete rewrite to wizard layout
-- `fp/web/templates/partials/research.html` - Enhanced with step card structure
-- `fp/web/templates/partials/discover.html` - Enhanced with step card structure
-- `fp/web/templates/partials/generate.html` - Enhanced with step card structure
-- `fp/web/templates/partials/score.html` - Enhanced with step card structure
-- `fp/web/templates/partials/export.html` - Enhanced with step card structure
-- `fp/web/routes/pipeline.py` - Add keep/discard/regenerate endpoints
+- `fp/web/routes/pipeline.py` - Added keep_items and regenerate_items endpoints
+- `fp/web/routes/pages.py` - Added step_statuses context computation
+- `fp/web/app.py` - Mounted /static for wizard.js (added in post-review fix)
 
 **New Files:**
-- `fp/web/templates/partials/wizard-step.html` - Reusable step component template
-- `fp/web/templates/partials/step-items.html` - Checkbox list component
 - `fp/web/static/js/wizard.js` - Checkbox state management + scroll navigation
+
+**Removed (post-review cleanup):**
+- ~~`fp/web/templates/partials/wizard-step.html`~~ - Originally planned as reusable step partial; later inlined into pipeline.html
+- ~~`fp/web/templates/partials/step-items.html`~~ - Originally planned as reusable checkbox list; later inlined into pipeline.html
+
+Note: The 5 legacy tab partials (`research.html`, `discover.html`, `generate.html`, `score.html`, `export.html`) were NOT modified by this plan. They remain for the existing `/api/pipeline/{step}` HTMX tab routes (still used by tests and possible future embeds).
 
 ---
 

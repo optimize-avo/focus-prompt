@@ -101,12 +101,13 @@ def generate_prompts_for_focus(
     focus: Focus,
     mode: PromptMode = PromptMode.UNBRANDED,
     model: str = "",
+    language: str = "id",
 ) -> list[ScoredPrompt]:
     """Generate prompts for a single focus."""
     all_prompts = []
 
     if mode in (PromptMode.UNBRANDED, PromptMode.BOTH):
-        unbranded = _call_prompt_gen(brand, focus, UNBRANDED_PROMPT_PROMPT, model=model)
+        unbranded = _call_prompt_gen(brand, focus, UNBRANDED_PROMPT_PROMPT, model=model, language=language)
         for p in unbranded:
             all_prompts.append(ScoredPrompt(
                 text=p.get("text", ""),

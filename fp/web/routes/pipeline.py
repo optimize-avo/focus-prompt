@@ -341,7 +341,7 @@ async def run_discover(request: Request):
         return HTMLResponse('<p class="text-yellow-600">No problems discovered.</p>')
 
     try:
-        focuses = generate_focuses(brand, problems)
+        focuses = generate_focuses(brand, problems, language=state.config.language)
         state.focuses = focuses
         save_state(state)
         items = "".join(

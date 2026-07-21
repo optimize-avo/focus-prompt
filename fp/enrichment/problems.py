@@ -52,14 +52,16 @@ Rules:
 """
 
 
-def discover_problems(brand: Brand, model: str = "") -> list[dict]:
+def discover_problems(brand: Brand, model: str = "", language: str = "id") -> list[dict]:
     """Use LLM to discover real user problems around brand's service categories."""
     categories_str = ", ".join(brand.service_categories) if brand.service_categories else brand.description
 
+    lang_instruction = LANGUAGE_INSTRUCTION.get(language, LANGUAGE_INSTRUCTION["id"])
+    system_prompt = PROBLEM_DISCOVERY_PROMPT.format(language_instruction=lang_instruction)
     data = completion_json(
         model=model,
         messages=[
-            {"role": "system", "content": PROBLEM_DISCOVERY_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps({
                 "brand": brand.name,
                 "description": brand.description,

@@ -398,7 +398,7 @@ async def run_all_phases(request: Request):
 
 @router.post("/research", response_class=HTMLResponse)
 async def run_research(request: Request, extra: str = Form("")):
-    """Run research step."""
+    """Run research step. Returns updated template partial for HTMX swap."""
     state = get_state()
     if not state:
         return HTMLResponse('<p class="text-red-600">No project found. <a href="/init" class="underline">Create one</a>.</p>')
@@ -408,15 +408,9 @@ async def run_research(request: Request, extra: str = Form("")):
         web_data = await research_queries(state.config.brand, extra_queries=extra_queries)
         state.web_data = web_data
         save_state(state)
-        stats = web_data["stats"]
-        resp = HTMLResponse(f'''
-            <div class="space-y-2">
-                <p class="text-green-600 font-medium">✓ Research complete</p>
-                <p class="text-sm">Autocomplete: {stats["autocomplete_count"]} suggestions</p>
-                <p class="text-sm">Total queries: {stats["total_queries"]}</p>
-                <p class="text-sm text-gray-500">Sample: {", ".join(web_data["autocomplete"][:5])}</p>
-            </div>
-        ''')
+
+        templates = request.app.state.templates
+        resp = templates.TemplateResponse(request, "partials/research.html", {"state": state})
         resp.headers["HX-Trigger"] = json.dumps({"phaseComplete": {"phase": "research", "completed": True}})
         return resp
     except Exception as e:

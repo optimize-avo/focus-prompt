@@ -133,7 +133,7 @@ def test_tab_routes_pass_state_in_context(mock_get_state):
 @patch("fp.web.routes.pipeline.get_state")
 @patch("fp.web.routes.pipeline.research_queries", new_callable=AsyncMock)
 def test_run_research_success(mock_research, mock_get_state, mock_save):
-    """POST /research should run research and return success HTML."""
+    """POST /research should run research and return updated template partial."""
     mock_state = MagicMock()
     mock_state.config.brand = "TestBrand"
     mock_get_state.return_value = mock_state
@@ -144,14 +144,21 @@ def test_run_research_success(mock_research, mock_get_state, mock_save):
         "stats": {"autocomplete_count": 6, "total_queries": 2},
     }
 
-    app, _ = _make_app()
+    app, mock_templates = _make_app()
     client = TestClient(app)
 
     response = client.post("/research")
 
     assert response.status_code == 200
-    assert "Research complete" in response.text
-    assert "6 suggestions" in response.text
+    # Should render the research template partial with updated state
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert call_args[0][1] == "partials/research.html"
+    # HX-Trigger header should notify phase completion
+    import json
+    trigger = json.loads(response.headers["HX-Trigger"])
+    assert trigger["phaseComplete"]["phase"] == "research"
+    assert trigger["phaseComplete"]["completed"] is True
     mock_save.assert_called_once_with(mock_state)
 
 

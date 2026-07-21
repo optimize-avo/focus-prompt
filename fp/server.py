@@ -161,7 +161,7 @@ async def fp_discover(model: str = "") -> str:
         return json.dumps({"error": "No problems discovered. Check brand input."})
 
     try:
-        focuses = generate_focuses(brand, problems, model=model)
+        focuses = generate_focuses(brand, problems, model=model, language=state.config.language)
     except Exception as e:
         return json.dumps({"error": f"Focus generation failed: {str(e)}"})
 

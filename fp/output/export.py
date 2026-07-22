@@ -5,7 +5,7 @@ import csv
 import json
 from pathlib import Path
 
-from fp.models import Focus, ProjectState
+from fp.models import ProjectState
 
 
 def export_json(state: ProjectState, path: str | Path):

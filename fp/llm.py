@@ -34,11 +34,11 @@ import litellm
 DEFAULT_MODEL = "gpt-4o-mini"
 
 # ─── Config loading (priority: env > user config > CWD .env) ───────────────
-from pathlib import Path as _Path
+from pathlib import Path as _Path  # noqa: E402
 
 # Step 1: Load user-level config (~/.config/fp/config.env)
 # Does NOT override existing env vars — preserves highest priority.
-from fp.config import load_user_config
+from fp.config import load_user_config  # noqa: E402
 load_user_config()
 
 # Step 2: Load project-level .env from CWD (legacy, for backward compat)

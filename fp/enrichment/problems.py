@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
-from typing import Optional
 
 import httpx
 
@@ -54,8 +52,6 @@ Rules:
 
 def discover_problems(brand: Brand, model: str = "", language: str = "id") -> list[dict]:
     """Use LLM to discover real user problems around brand's service categories."""
-    categories_str = ", ".join(brand.service_categories) if brand.service_categories else brand.description
-
     lang_instruction = LANGUAGE_INSTRUCTION.get(language, LANGUAGE_INSTRUCTION["id"])
     system_prompt = PROBLEM_DISCOVERY_PROMPT.format(language_instruction=lang_instruction)
     data = completion_json(
@@ -81,8 +77,8 @@ def discover_problems_web(brand: Brand) -> list[str]:
     queries = []
 
     try:
-        resp = httpx.get(
-            f"https://www.google.com/complete/search",
+        httpx.get(
+            "https://www.google.com/complete/search",
             params={"q": brand.service_categories[0] if brand.service_categories else brand.name, "hl": "id", "client": "hp"},
             headers={"User-Agent": "Mozilla/5.0"},
             timeout=10,

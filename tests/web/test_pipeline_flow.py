@@ -42,7 +42,13 @@ def _mock_state():
             "software desain gratis",
             "aplikasi desain profesional",
         ],
-        "all_queries": ["jasa desain murah", "platform desain terbaik"],
+        "all_queries": [
+            "jasa desain murah",
+            "platform desain terbaik",
+            "tool desain grafis",
+            "software desain gratis",
+            "aplikasi desain profesional",
+        ],
         "stats": {"autocomplete_count": 5, "total_queries": 5},
     }
 

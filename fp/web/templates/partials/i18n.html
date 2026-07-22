@@ -1,0 +1,109 @@
+{# Language-aware strings for pipeline UI.
+
+   Usage:
+     {% import "partials/i18n.html" as i18n %}
+     {{ i18n.t('riset.heading', state) }}
+
+   'mix' language uses Indonesian (primary default) — content prompts stay Indonesian-friendly.
+
+   Add new keys here as the UI grows. Keep keys stable. #}
+{% macro t(key, state) -%}
+{%- set lang = (state.config.language if state and state.config else 'id') -%}
+{%- if key == 'riset.heading' -%}
+{%- if lang == 'en' -%}Step 1: Research Real Queries{%- else -%}Langkah 1: Riset Query Real{%- endif -%}
+{%- elif key == 'riset.desc' -%}
+{%- if lang == 'en' -%}We'll search for real queries people type into Google about your services.{%- else -%}Kami akan mencari query real yang diketik orang di Google tentang layananmu.{%- endif -%}
+{%- elif key == 'riset.done' -%}
+{%- if lang == 'en' -%}✓ Research complete!{%- else -%}✓ Riset selesai!{%- endif -%}
+{%- elif key == 'riset.sample' -%}
+{%- if lang == 'en' -%}Sample queries found:{%- else -%}Sample queries yang ditemukan:{%- endif -%}
+{%- elif key == 'riset.review_all' -%}
+{%- if lang == 'en' -%}🔍 Review All Queries{%- else -%}🔍 Review Semua Queries{%- endif -%}
+{%- elif key == 'riset.will_search' -%}
+{%- if lang == 'en' -%}Queries that will be searched:{%- else -%}Query yang akan dicari:{%- endif -%}
+{%- elif key == 'riset.run' -%}
+{%- if lang == 'en' -%}🔍 Start Research{%- else -%}🔍 Mulai Riset{%- endif -%}
+{%- elif key == 'riset.running' -%}
+{%- if lang == 'en' -%}Researching...{%- else -%}Sedang riset...{%- endif -%}
+{%- elif key == 'discover.heading' -%}
+{%- if lang == 'en' -%}Step 2: Find Focus Areas{%- else -%}Langkah 2: Temukan Focus Areas{%- endif -%}
+{%- elif key == 'discover.desc' -%}
+{%- if lang == 'en' -%}We'll analyze the queries and find the main topics relevant to your business.{%- else -%}Kami akan menganalisis query dan menemukan topik-topik utama yang relevan dengan bisnismu.{%- endif -%}
+{%- elif key == 'discover.done' -%}
+{%- if lang == 'en' -%}✓ Focus areas found!{%- else -%}✓ Focus areas ditemukan!{%- endif -%}
+{%- elif key == 'discover.review_all' -%}
+{%- if lang == 'en' -%}💡 Review All Focuses{%- else -%}💡 Review Semua Focus{%- endif -%}
+{%- elif key == 'discover.using' -%}
+{%- if lang == 'en' -%}Using {%- else -%}Menggunakan {%- endif -%}
+{%- elif key == 'discover.queries_from_prev' -%}
+{%- if lang == 'en' -%}queries from the previous step.{%- else -%}queries dari langkah sebelumnya.{%- endif -%}
+{%- elif key == 'discover.run' -%}
+{%- if lang == 'en' -%}💡 Find Focus Areas{%- else -%}💡 Temukan Focus Areas{%- endif -%}
+{%- elif key == 'discover.running' -%}
+{%- if lang == 'en' -%}Finding focus areas...{%- else -%}Mencari focus areas...{%- endif -%}
+{%- elif key == 'discover.complete_research_first' -%}
+{%- if lang == 'en' -%}Finish the Research step first.{%- else -%}Selesaikan langkah Research terlebih dahulu.{%- endif -%}
+{%- elif key == 'generate.heading' -%}
+{%- if lang == 'en' -%}Step 3: Generate Prompts{%- else -%}Langkah 3: Generate Prompts{%- endif -%}
+{%- elif key == 'generate.desc' -%}
+{%- if lang == 'en' -%}We'll create variations of prompts for each focus area.{%- else -%}Kami akan membuat berbagai variasi prompt untuk setiap focus area.{%- endif -%}
+{%- elif key == 'generate.done' -%}
+{%- if lang == 'en' -%}✓ Prompts generated!{%- else -%}✓ Prompts dihasilkan!{%- endif -%}
+{%- elif key == 'generate.review_all' -%}
+{%- if lang == 'en' -%}✨ Review All Prompts{%- else -%}✨ Review Semua Prompts{%- endif -%}
+{%- elif key == 'generate.run' -%}
+{%- if lang == 'en' -%}✨ Generate Prompts{%- else -%}✨ Generate Prompts{%- endif -%}
+{%- elif key == 'generate.running' -%}
+{%- if lang == 'en' -%}Generating prompts...{%- else -%}Membuat prompts...{%- endif -%}
+{%- elif key == 'generate.more' -%}
+{%- if lang == 'en' -%}...and {{ n }} more{%- else -%}...dan {{ n }} lainnya{%- endif -%}
+{%- elif key == 'generate.complete_discover_first' -%}
+{%- if lang == 'en' -%}Finish the Discover step first.{%- else -%}Selesaikan langkah Discover terlebih dahulu.{%- endif -%}
+{%- elif key == 'generate.naturalize_label' -%}
+{%- if lang == 'en' -%}Apply naturalness pass (more human-like prompts){%- else -%}Aplikasikan naturalness pass (prompt lebih natural){%- endif -%}
+{%- elif key == 'score.heading' -%}
+{%- if lang == 'en' -%}Step 4: Relevance Score{%- else -%}Langkah 4: Skor Relevansi{%- endif -%}
+{%- elif key == 'score.desc' -%}
+{%- if lang == 'en' -%}We'll rate each prompt for relevance to your brand.{%- else -%}Kami akan menilai setiap prompt untuk relevansi dengan brand Anda.{%- endif -%}
+{%- elif key == 'score.done' -%}
+{%- if lang == 'en' -%}✓ Scoring complete!{%- else -%}✓ Scoring selesai!{%- endif -%}
+{%- elif key == 'score.review_results' -%}
+{%- if lang == 'en' -%}📊 Review Score Results{%- else -%}📊 Review Hasil Skor{%- endif -%}
+{%- elif key == 'score.run' -%}
+{%- if lang == 'en' -%}📊 Start Scoring{%- else -%}📊 Mulai Scoring{%- endif -%}
+{%- elif key == 'score.running' -%}
+{%- if lang == 'en' -%}Scoring prompts...{%- else -%}Menilai prompts...{%- endif -%}
+{%- elif key == 'score.complete_generate_first' -%}
+{%- if lang == 'en' -%}Finish the Generate step first.{%- else -%}Selesaikan langkah Generate terlebih dahulu.{%- endif -%}
+{%- elif key == 'score.prompts_label' -%}
+{%- if lang == 'en' -%}prompts scored{%- else -%}prompts scored{%- endif -%}
+{%- elif key == 'score.avg_label' -%}
+{%- if lang == 'en' -%}Average score: {%- else -%}Average score: {%- endif -%}
+{%- elif key == 'export.heading' -%}
+{%- if lang == 'en' -%}Step 5: Export Results{%- else -%}Langkah 5: Export Hasil{%- endif -%}
+{%- elif key == 'export.desc' -%}
+{%- if lang == 'en' -%}Download your research results in your preferred format.{%- else -%}Unduh hasil riset Anda dalam format yang diinginkan.{%- endif -%}
+{%- elif key == 'export.summary' -%}
+{%- if lang == 'en' -%}Summary:{%- else -%}Ringkasan:{%- endif -%}
+{%- elif key == 'export.complete_prev_first' -%}
+{%- if lang == 'en' -%}Finish the previous step to export.{%- else -%}Selesaikan langkah sebelumnya untuk export.{%- endif -%}
+{%- elif key == 'nav.research' -%}
+{%- if lang == 'en' -%}Research{%- else -%}Riset{%- endif -%}
+{%- elif key == 'nav.discover' -%}
+{%- if lang == 'en' -%}Discover{%- else -%}Temukan{%- endif -%}
+{%- elif key == 'nav.generate' -%}
+{%- if lang == 'en' -%}Generate{%- else -%}Generate{%- endif -%}
+{%- elif key == 'nav.score' -%}
+{%- if lang == 'en' -%}Score{%- else -%}Skor{%- endif -%}
+{%- elif key == 'nav.export' -%}
+{%- if lang == 'en' -%}Export{%- else -%}Ekspor{%- endif -%}
+{%- elif key == 'nav.back' -%}
+{%- if lang == 'en' -%}← Back{%- else -%}← Kembali{%- endif -%}
+{%- elif key == 'nav.next' -%}
+{%- if lang == 'en' -%}Next →{%- else -%}Lanjut →{%- endif -%}
+{%- elif key == 'nav.done' -%}
+{%- if lang == 'en' -%}Done ✓{%- else -%}Selesai ✓{%- endif -%}
+{%- else -%}
+[{{ key }}]
+{%- endif -%}
+{%- endmacro %}

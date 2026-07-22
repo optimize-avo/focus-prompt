@@ -1,20 +1,26 @@
+{% import "partials/i18n.html" as i18n %}
 <div class="space-y-6">
     <!-- Header -->
     <div>
-        <h2 class="text-xl font-bold text-white mb-2">Langkah 5: Export Hasil</h2>
-        <p class="text-slate-400">Unduh hasil riset Anda dalam format yang diinginkan.</p>
+        <h2 class="text-xl font-bold text-white mb-2">{{ i18n.t('export.heading', state) }}</h2>
+        <p class="text-slate-400">{{ i18n.t('export.desc', state) }}</p>
     </div>
 
     {% if state and state.focuses %}
+    {% set ns = namespace(needs_review=0) %}
+    {% for f in state.focuses %}
+        {% for p in f.prompts %}
+            {% if p.needs_review %}{% set ns.needs_review = ns.needs_review + 1 %}{% endif %}
+        {% endfor %}
+    {% endfor %}
     <!-- Summary -->
     <div class="bg-slate-700/30 rounded-lg p-4">
-        <p class="text-slate-300 mb-2"><strong>Ringkasan:</strong></p>
+        <p class="text-slate-300 mb-2"><strong>{{ i18n.t('export.summary', state) }}</strong></p>
         <ul class="space-y-1 text-sm text-slate-400">
             <li>• {{ state.focuses|length }} focus areas</li>
             <li>• {{ state.focuses|map(attribute='prompts')|map('length')|sum }} prompts
-                {% set needs_review = state.focuses|map(attribute='prompts')|map('selectattr', 'needs_review')|map('length')|sum %}
-                {% if needs_review > 0 %}
-                <span class="text-amber-400">({{ needs_review }} need review)</span>
+                {% if ns.needs_review > 0 %}
+                <span class="text-amber-400">({{ ns.needs_review }} need review)</span>
                 {% endif %}
             </li>
         </ul>
@@ -31,6 +37,6 @@
     </div>
 
     {% else %}
-    <p class="text-slate-500 italic">Selesaikan langkah sebelumnya untuk export.</p>
+    <p class="text-slate-500 italic">{{ i18n.t('export.complete_prev_first', state) }}</p>
     {% endif %}
 </div>

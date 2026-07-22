@@ -302,7 +302,7 @@ async def run_all_phases(request: Request):
         if not status["research"]["completed"]:
             yield _phase("research", status="running")
             try:
-                web_data = await research_queries(brand)
+                web_data = await research_queries(brand, language=state.config.language)
                 state.web_data = web_data
                 save_state(state)
                 yield _phase("research", status="completed")
@@ -403,9 +403,9 @@ async def run_research(request: Request, extra: str = Form("")):
     if not state:
         return HTMLResponse('<p class="text-red-600">No project found. <a href="/init" class="underline">Create one</a>.</p>')
 
-    extra_queries = [q.strip() for q in extra.split(",") if q.strip()] if extra else None
+    extra_queries = [q.strip() for q in extra.split(",") if q.strip()] or None if extra else None
     try:
-        web_data = await research_queries(state.config.brand, extra_queries=extra_queries)
+        web_data = await research_queries(state.config.brand, extra_queries=extra_queries, language=state.config.language)
         state.web_data = web_data
         save_state(state)
 
@@ -451,14 +451,21 @@ async def run_discover(request: Request):
 
 
 @router.post("/generate", response_class=HTMLResponse)
-async def run_generate(request: Request):
+async def run_generate(request: Request, naturalize: str = Form("")):
     """Run generate step."""
     state = get_state()
     if not state or not state.focuses:
         return HTMLResponse('<p class="text-red-600">No focuses. Run discover first.</p>')
 
+    do_naturalize = naturalize.lower() in ("1", "true", "on", "yes")
     try:
-        updated = generate_all_prompts(state.config.brand, state.focuses, state.config.prompt_mode, language=state.config.language)
+        updated = generate_all_prompts(
+            state.config.brand,
+            state.focuses,
+            state.config.prompt_mode,
+            language=state.config.language,
+            naturalize=do_naturalize,
+        )
         state.focuses = updated
         save_state(state)
 
@@ -503,9 +510,9 @@ async def run_export(request: Request, fmt: str = Form("json")):
 
     try:
         if fmt == "csv":
-            path = export_csv(state, "fp-export.csv")
+            export_csv(state, "fp-export.csv")
         else:
-            path = export_json(state, "fp-export.json")
+            export_json(state, "fp-export.json")
 
         templates = request.app.state.templates
         resp = templates.TemplateResponse(request, "partials/export.html", {"state": state})
@@ -603,7 +610,7 @@ async def regenerate_items(request: Request, step: str):
     if step == "research":
         # Regenerate queries for research
         from fp.research.web import research_queries
-        web_data = await research_queries(brand, extra_queries=regenerate_ids if regenerate_ids else None)
+        web_data = await research_queries(brand, extra_queries=regenerate_ids if regenerate_ids else None, language=language)
         state.web_data = web_data
         save_state(state)
         return {"status": "ok", "regenerating": 1}

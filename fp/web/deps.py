@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from fp import db
 from fp.config import load_user_config, get_current_config
@@ -27,7 +26,6 @@ def get_state():
 
 def save_state(state) -> None:
     """Save project state to SQLite (upsert active project)."""
-    from fp.models import ProjectState
 
     db.init_db()
     project_id = db.get_active_project_id()

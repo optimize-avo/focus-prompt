@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-import json
 from fp.llm import completion_json
 from fp.models import ScoredPrompt, Focus
 

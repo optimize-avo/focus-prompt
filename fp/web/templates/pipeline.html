@@ -4,23 +4,24 @@
 <link rel="stylesheet" href="/static/css/custom.css">
 {% endblock %}
 {% block content %}
+{% import "partials/i18n.html" as i18n %}
 {% set step_statuses = step_statuses|default({}) %}
 {% set current_step = current_step|default('research') %}
 {% set steps = [
-    ('research', 'Riset', '1'),
-    ('discover', 'Temukan', '2'),
-    ('generate', 'Generate', '3'),
-    ('score', 'Skor', '4'),
-    ('export', 'Ekspor', '5')
+    ('research', 'nav.research', '1'),
+    ('discover', 'nav.discover', '2'),
+    ('generate', 'nav.generate', '3'),
+    ('score', 'nav.score', '4'),
+    ('export', 'nav.export', '5')
 ] %}
 
 <div class="max-w-4xl mx-auto space-y-6">
     <!-- Progress Indicator -->
     <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-4">
         <div class="flex items-center justify-between">
-            {% for step_id, step_name, step_num in steps %}
+            {% for step_id, label_key, step_num in steps %}
             <div class="flex items-center">
-                <button onclick="Wizard.goToStep('{{ step_id }}')" 
+                <button onclick="Wizard.goToStep('{{ step_id }}')"
                         class="step-btn flex flex-col items-center group cursor-pointer
                                {% if current_step == step_id %}opacity-100
                                {% elif step_statuses.get(step_id, {}).get('completed', false) %}opacity-75
@@ -34,11 +35,11 @@
                         {% else %}{{ step_num }}{% endif %}
                     </div>
                     <span class="text-xs mt-1 {% if current_step == step_id %}text-white font-medium{% else %}text-slate-400{% endif %}">
-                        {{ step_name }}
+                        {{ i18n.t(label_key, state) }}
                     </span>
                 </button>
                 {% if not loop.last %}
-                <div class="w-12 h-0.5 mx-2 
+                <div class="w-12 h-0.5 mx-2
                     {% if step_statuses.get(step_id, {}).get('completed', false) %}bg-emerald-500
                     {% else %}bg-slate-700{% endif %}"></div>
                 {% endif %}
@@ -54,15 +55,15 @@
 
     <!-- Navigation -->
     <div class="flex items-center justify-between">
-        <button onclick="Wizard.prevStep()" 
+        <button onclick="Wizard.prevStep()"
                 {% if current_step == 'research' %}disabled{% endif %}
                 class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            ← Kembali
+            {{ i18n.t('nav.back', state) }}
         </button>
-        <button onclick="Wizard.nextStep()" 
+        <button onclick="Wizard.nextStep()"
                 {% if not step_statuses.get(current_step, {}).get('completed', false) %}disabled{% endif %}
                 class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-            {% if current_step == 'export' %}Selesai ✓{% else %}Lanjut →{% endif %}
+            {% if current_step == 'export' %}{{ i18n.t('nav.done', state) }}{% else %}{{ i18n.t('nav.next', state) }}{% endif %}
         </button>
     </div>
 </div>

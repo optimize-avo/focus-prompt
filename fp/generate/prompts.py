@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from fp.llm import completion_json
-from fp.models import Brand, Focus, PromptMode, Prompt, PromptIntent, ScoredPrompt
+from fp.models import Brand, Focus, PromptMode, PromptIntent, ScoredPrompt
 
 LANGUAGE_INSTRUCTION = {
     "id": "OUTPUT LANGUAGE: Write ALL prompts in Bahasa Indonesia. NEVER use Chinese characters (汉字), Japanese, Korean, or any non-Latin script except Arabic numerals.",
@@ -12,7 +12,7 @@ LANGUAGE_INSTRUCTION = {
     "mix": "OUTPUT LANGUAGE: Write prompts in a mix of Indonesian and English (as real users do). NEVER use Chinese characters (汉字), Japanese, Korean, or any non-Latin script except Arabic numerals.",
 }
 
-UNBRANDED_PROMPT_PROMPT = """You are an expert at predicting what real users ask AI chatbots. Given a focus topic and a brand that offers relevant services, generate realistic user prompts that people would actually type into ChatGPT, Google Gemini, or similar AI tools.
+UNBRANDED_PROMPT_PROMPT = """You are an expert at predicting what real users ask AI chatbots. Given a focus topic and a brand that offers relevant services, generate realistic user prompts that people would actually type into AI chatbots.
 
 The prompts must be UNBRANDED — they must NOT mention the brand name. The goal is to predict prompts where the AI's response could naturally mention {brand_name} as a solution.
 
@@ -38,6 +38,41 @@ Rules:
 - 6-10 prompts per focus
 - {language_instruction}
 - Think about different user personas: pemula, expert, bisnis, individual
+
+REALISM INJECTION — these rules are CRITICAL for natural-sounding prompts:
+
+1. PLATFORM MENTION LIMITS:
+   - Maximum 1 platform name per prompt in 70% of prompts
+   - Remaining 30% can mention 2 platforms max
+   - Use generic terms like "AI chatbots", "AI assistants", "AI tools" for most prompts
+   - NEVER list 3+ platforms in a single prompt
+   - Example: "best AI brand tracker?" (no platform) vs "ChatGPT brand monitoring" (1 platform)
+
+2. INTENT DISTRIBUTION (approximate per batch):
+   - info: 25% (most common — people asking what something is)
+   - how-to: 20% (very common — people wanting to do something)
+   - comparison: 15% (common — people evaluating options)
+   - explore: 12% (moderate — people browsing/discovering)
+   - troubleshoot: 10% (moderate — people with problems)
+   - review: 8% (less common — people seeking social proof)
+   - verify: 6% (less common — people checking claims)
+   - hire: 4% (rare — people ready to buy)
+
+3. SPECIFICITY INJECTION — include variety of real-world details:
+   - Budget constraints: "under $100/month", "free alternatives", "won't cost $500+"
+   - Competitor names: Reference real competitors when relevant (e.g., PEEC AI, The Prompting Company, Brandwatch, Semrush, Ahrefs)
+   - Geographic context: "for businesses in [region]", "in Indonesia", "for US market"
+   - Company size: "small business", "enterprise", "agency managing 10+ brands"
+   - Specific scenarios: "when generating articles longer than 1000 words", "for multiple brands at once"
+   - Error messages: "timeout error", "API key invalid", "rate limit exceeded"
+
+4. NATURAL LANGUAGE VARIATION:
+   - Include prompts with imperfect grammar or casual slang
+   - Mix prompt lengths: some under 10 words, some over 20 words
+   - At least 2 prompts should sound like the user already tried something and failed
+   - Include filler words naturally: "basically", "honestly", "like"
+   - Some prompts should be fragmented sentences, not complete questions
+   - Some should end with "..." or have trailing thoughts
 """
 
 BRANDED_PROMPT_PROMPT = """You are an expert at predicting what real users ask AI chatbots about specific brands. Given a focus topic and a brand, generate realistic user prompts that include the brand name.
@@ -61,6 +96,28 @@ Rules:
 - 4-6 prompts per focus
 - Varied intent and phrasing
 - {language_instruction}
+
+REALISM INJECTION — these rules are CRITICAL for natural-sounding prompts:
+
+1. PLATFORM MENTION LIMITS:
+   - Maximum 1 platform name per prompt in 70% of prompts
+   - Remaining 30% can mention 2 platforms max
+   - Use generic terms like "AI chatbots", "AI assistants", "AI tools" for most prompts
+   - NEVER list 3+ platforms in a single prompt
+
+2. SPECIFICITY INJECTION — include variety of real-world details:
+   - Budget constraints: "Is {brand_name} worth the cost?", "cheaper than alternatives"
+   - Competitor comparisons: "{brand_name} vs [competitor]", "better than [competitor]?"
+   - Specific scenarios: "for my agency managing 10+ brands", "for small business on budget"
+   - Experience level: "as a beginner", "for enterprise use"
+   - Pain points: "tired of", "frustrated with", "looking for something better"
+
+3. NATURAL LANGUAGE VARIATION:
+   - Mix formal and casual phrasing
+   - Some prompts should sound frustrated or skeptical
+   - Some should be very specific about use case
+   - Some should be short and direct, others detailed
+   - Include natural filler words: "honestly", "basically", "actually"
 """
 
 
@@ -138,8 +195,9 @@ def generate_all_prompts(
     model: str = "",
     language: str = "id",
     sanitize: bool = True,
+    naturalize: bool = False,
 ) -> list[Focus]:
-    """Generate prompts for all focuses in place, optionally sanitize."""
+    """Generate prompts for all focuses in place, optionally sanitize and naturalize."""
     import copy
     updated = copy.deepcopy(focuses)
     for focus in updated:
@@ -148,5 +206,9 @@ def generate_all_prompts(
     if sanitize:
         from fp.generate.sanitize import sanitize_focuses
         updated = sanitize_focuses(updated, model=model)
+
+    if naturalize:
+        from fp.generate.naturalness import naturalize_all_focuses
+        updated = naturalize_all_focuses(updated, model=model)
 
     return updated

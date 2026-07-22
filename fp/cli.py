@@ -1,9 +1,23 @@
-"""CLI — Focus Prompt Research Tool."""
+"""CLI — Focus Prompt Research Tool.
+
+⚠️  DEPRECATED — Web app only mode
+====================================
+This CLI is DEPRECATED as of 2026-07-22. focus-prompt is now a web app only.
+
+SKIP THIS FILE during development. Do NOT add new features here.
+All new development goes to fp/web/ and the FastAPI app.
+
+The entry point `fp` has been removed from pyproject.toml.
+This file is kept for reference but is not installed.
+
+To restore (not recommended): re-add `fp = "fp.cli:app"` to [project.scripts]
+in pyproject.toml and reinstall with `pip install -e .`.
+
+See: docs/CLI_MCP_DEPRECATED.md
+"""
 from __future__ import annotations
 
-import json
 import os
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -18,11 +32,9 @@ from fp.enrichment.problems import discover_problems, discover_problems_enriched
 from fp.research.web import research_queries
 from fp.models import (
     Brand,
-    Focus,
     ProjectConfig,
     ProjectState,
     PromptMode,
-    ScoredPrompt,
 )
 from fp.config import get_current_config, get_config_path, save_user_config
 from fp.output.export import export_csv, export_json
@@ -130,7 +142,7 @@ def setup(
 
     # API key input
     if not api_key:
-        console.print(f"\n[dim]Get your API key from the provider's dashboard[/dim]")
+        console.print("\n[dim]Get your API key from the provider's dashboard[/dim]")
         api_key = typer.prompt(f"{info['env_key']}")
 
     if not api_key.strip():
@@ -158,7 +170,7 @@ def setup(
     console.print(f"\n[bold green]✓[/] Config saved to [cyan]{saved_path}[/cyan]")
     console.print(f"  Model: [yellow]{model}[/]")
     console.print(f"  Key:   {api_key.strip()[:8]}...{api_key.strip()[-4:]}")
-    console.print(f"\n[dim]Works from any directory — no .env file needed[/dim]")
+    console.print("\n[dim]Works from any directory — no .env file needed[/dim]")
     console.print("\nVerify: [bold]fp status[/]")
 
     # Quick verification
@@ -227,6 +239,7 @@ def research(
             brand,
             extra_queries=extra_queries,
             include_autocomplete=not no_autocomplete,
+            language=state.config.language,
         ))
     except Exception as e:
         err_console.print(f"[red]Web research failed:[/red] {e}")
@@ -463,7 +476,7 @@ def status():
     console.print(f"  Website:     {brand.website or '—'}")
     console.print(f"  Services:    {', '.join(brand.service_categories) or '—'}")
     console.print(f"  Competitors: {', '.join(brand.competitors) or '—'}")
-    console.print(f"\n[bold]State:[/]")
+    console.print("\n[bold]State:[/]")
     console.print(f"  Focuses:     {len(state.focuses)}")
     console.print(f"  Prompts:     {total_prompts}")
     console.print(f"  Needs review:{' [yellow]' + str(needs_review) + '[/]' if needs_review else ' 0'}")

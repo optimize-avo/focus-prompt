@@ -12,11 +12,11 @@ LANGUAGE_INSTRUCTION = {
     "mix": "Name can be in Indonesian or English (mix is ok, as real users mix them).",
 }
 
-FOCUS_GENERATION_PROMPT = """You are a topic clustering analyst. Given a brand and a list of real user problems/queries, cluster them into meaningful "focuses" — topic areas that represent what people are actually asking about or searching for.
+FOCUS_GENERATION_PROMPT = """You are a topic clustering analyst. Given a brand, real user problems, and EXA search patterns, cluster them into meaningful "focuses" — topic areas that represent what people are actually asking about.
 
 For each focus, provide:
-1. name — short, descriptive name (e.g., "Freelance platform dengan biaya rendah")
-2. description — 1 sentence explaining this focus
+1. name — EVOCATIVE, specific name that captures the real user pain point
+2. description — 1 sentence explaining this focus from user's perspective
 3. queries — list of the user queries that belong to this cluster
 
 OUTPUT FORMAT — Return JSON:
@@ -37,6 +37,26 @@ Rules:
 - Focuses must be mutually exclusive
 - Prioritize focuses where this brand's services are a natural fit
 - Name must be problem-oriented, not brand-oriented
+
+NAME QUALITY RULES (CRITICAL — these determine whether prompts feel natural or templated):
+- Use emotional or specific language: "frustrated", "confused", "looking for", "tired of"
+- Include concrete details: competitor names, budget ranges, specific scenarios
+- Sound like a real person's complaint or question, not a marketing category
+
+EXAMPLES OF GREAT FOCUS NAMES:
+✓ "My Competitors Are in ChatGPT — Why Aren't We?"
+✓ "AI Visibility Tools Under $100/Month"
+✓ "Why Does ChatGPT Recommend My Competitor Instead of Me?"
+✓ "Tracking Brand Mentions Across Multiple AI Platforms"
+✓ "Is AI Visibility Tracking Worth the Investment?"
+✓ "Finding a Tool That Actually Works for Small Businesses"
+✓ "Competitor Analysis for AI Search Results"
+
+EXAMPLES OF BAD FOCUS NAMES (TOO GENERIC):
+✗ "Setting Up AI Visibility Tracking"
+✗ "Getting Actionable Optimization Steps"
+✗ "Comparing AI Visibility Platforms and Tools"
+✗ "Understanding AI Visibility Technology"
 """
 
 

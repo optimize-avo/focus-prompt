@@ -422,7 +422,7 @@ def delete_step_selections(project_id: int) -> None:
 # --- Model Conversion Helpers (Task 5) ---
 
 
-from fp.models import (
+from fp.models import (  # noqa: E402
     Brand,
     Focus,
     PromptIntent,

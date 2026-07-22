@@ -1,21 +1,33 @@
-"""MCP Server — Focus Prompt Research Tool for OpenCode."""
+"""MCP Server — Focus Prompt Research Tool for OpenCode.
+
+⚠️  DEPRECATED — Web app only mode
+====================================
+This MCP server is DEPRECATED as of 2026-07-22. focus-prompt is now a web app only.
+
+SKIP THIS FILE during development. Do NOT add new features here.
+All new development goes to fp/web/ and the FastAPI app.
+
+The entry point `fp-mcp` has been removed from pyproject.toml.
+This file is kept for reference but is not installed.
+
+To restore (not recommended): re-add `fp-mcp = "fp.server:main"` to [project.scripts]
+in pyproject.toml and reinstall with `pip install -e .`.
+
+See: docs/CLI_MCP_DEPRECATED.md
+"""
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
-from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
 from fp.generate.focuses import generate_focuses
 from fp.generate.prompts import generate_all_prompts
-import asyncio
 from fp.research.web import research_queries
 from fp.enrichment.problems import discover_problems, discover_problems_enriched
 from fp.models import (
     Brand,
-    Focus,
     ProjectConfig,
     ProjectState,
     PromptMode,
@@ -132,7 +144,7 @@ async def fp_research(
         "status": "ok",
         "stats": stats,
         "sample_autocomplete": sample_autocomplete,
-        "message": f"Run fp_discover next — it will use this real data as ground truth.",
+        "message": "Run fp_discover next — it will use this real data as ground truth.",
     }, indent=2, ensure_ascii=False)
 
 

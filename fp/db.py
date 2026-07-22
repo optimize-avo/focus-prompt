@@ -1,9 +1,7 @@
 """SQLite database layer for focus-prompt."""
 from __future__ import annotations
 
-import json
 import sqlite3
-from datetime import datetime, timezone
 from pathlib import Path
 
 DB_PATH = Path.home() / ".config" / "fp" / "focus_prompt.db"

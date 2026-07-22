@@ -1,5 +1,4 @@
 import sqlite3
-import tempfile
 from pathlib import Path
 from fp.db import init_db, get_db, DB_PATH
 

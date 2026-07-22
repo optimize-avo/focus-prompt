@@ -1,8 +1,9 @@
+{% import "partials/i18n.html" as i18n %}
 <div class="space-y-6">
     <!-- Header -->
     <div>
-        <h2 class="text-xl font-bold text-white mb-2">Langkah 4: Skor Relevansi</h2>
-        <p class="text-slate-400">Kami akan menilai setiap prompt untuk relevansi dengan brand Anda.</p>
+        <h2 class="text-xl font-bold text-white mb-2">{{ i18n.t('score.heading', state) }}</h2>
+        <p class="text-slate-400">{{ i18n.t('score.desc', state) }}</p>
     </div>
 
     {% set scored_prompts = [] %}
@@ -19,10 +20,10 @@
     {% if scored_prompts|length > 0 %}
     <!-- Post-Run Results -->
     <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-4">
-        <p class="text-emerald-400 font-medium mb-2">✓ Scoring selesai!</p>
+        <p class="text-emerald-400 font-medium mb-2">{{ i18n.t('score.done', state) }}</p>
         <p class="text-slate-300">
-            📊 <strong>{{ scored_prompts|length }}</strong> prompts scored<br>
-            📈 Average score: <strong>{{ "%.2f"|format(scored_prompts|map(attribute='overall_score')|sum / scored_prompts|length) }}</strong>
+            📊 <strong>{{ scored_prompts|length }}</strong> {{ i18n.t('score.prompts_label', state) }}<br>
+            📈 {{ i18n.t('score.avg_label', state) }}<strong>{{ "%.2f"|format(scored_prompts|map(attribute='overall_score')|sum / scored_prompts|length) }}</strong>
         </p>
     </div>
 
@@ -45,35 +46,64 @@
     <!-- Review Button -->
     <button onclick="openScoreModal()"
             class="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg text-sm font-medium transition-colors">
-        📊 Review Hasil Skor
+        {{ i18n.t('score.review_results', state) }}
     </button>
 
     {% elif state and state.focuses and state.focuses|map(attribute='prompts')|map('length')|sum > 0 %}
     <!-- Pre-Run UI -->
     <div class="bg-slate-700/30 rounded-lg p-4">
-        <p class="text-slate-300">Menggunakan <strong>{{ state.focuses|map(attribute='prompts')|map('length')|sum }}</strong> prompts dari langkah sebelumnya.</p>
+        <p class="text-slate-300">{{ i18n.t('discover.using', state) }}<strong>{{ state.focuses|map(attribute='prompts')|map('length')|sum }}</strong> prompts dari langkah sebelumnya.</p>
     </div>
 
-    <form hx-post="/api/score" hx-target="#step-content" hx-swap="innerHTML">
-        <button type="submit" class="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
-            📊 Mulai Scoring
+    <form hx-post="/api/score" hx-target="#step-content" hx-swap="innerHTML" hx-indicator="#score-spinner">
+        <button type="submit"
+                class="run-btn flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+            <span class="run-label">{{ i18n.t('score.run', state) }}</span>
+            <span id="score-spinner" class="htmx-indicator inline-flex items-center gap-2">
+                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ i18n.t('score.running', state) }}</span>
+            </span>
         </button>
     </form>
+        {% set phase_id = 'score' %}
+        {% set phase_label = 'Scoring prompts…' %}
+        {% include 'partials/_progress.html' %}
     {% else %}
-    <p class="text-slate-500 italic">Selesaikan langkah Generate terlebih dahulu.</p>
+    <p class="text-slate-500 italic">{{ i18n.t('score.complete_generate_first', state) }}</p>
     {% endif %}
 </div>
 
 <script>
 function openScoreModal() {
+    const btn = document.querySelector('button[onclick="openScoreModal()"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-60', 'cursor-not-allowed');
+    }
     fetch('/api/pipeline/step/score/items')
         .then(r => r.json())
         .then(data => {
             Modal.open({
                 title: `Review Scores (${data.total})`,
                 items: data.items.map(i => ({...i, text: `${i.score.toFixed(2)} - ${i.text}`})),
-                onSave: async () => { Modal.close(); }
+                onSave: async () => { Modal.close(); },
+                onClose: () => {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                    }
+                }
             });
+        })
+        .catch(err => {
+            console.error('Failed to load items:', err);
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
         });
 }
 </script>

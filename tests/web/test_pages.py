@@ -447,3 +447,98 @@ def test_init_research_then_submit_creates_project(mock_save, mock_research):
     })
     assert response.status_code == 200
     mock_save.assert_called_once()
+
+
+# ── GET /projects/{id}/manage ────────────────────────────────────────
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.get_project")
+def test_manage_page_returns_html_response(mock_project, mock_focuses, mock_prompts):
+    """GET /projects/1/manage should return an HTML response using manage.html template."""
+    mock_project.return_value = {"id": 1, "name": "ACME"}
+    mock_focuses.return_value = []
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    response = client.get("/projects/1/manage")
+
+    assert response.status_code == 200
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert isinstance(call_args[0][0], Request)
+    assert call_args[0][1] == "manage.html"
+
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.get_project")
+def test_manage_page_passes_project_in_context(mock_project, mock_focuses, mock_prompts):
+    """GET /projects/1/manage should pass project and focuses in template context."""
+    mock_project.return_value = {"id": 1, "name": "ACME", "description": "Enterprise"}
+    mock_focuses.return_value = [{"id": 10, "name": "Focus A", "project_id": 1}]
+    mock_prompts.return_value = [{"id": 100, "text": "Prompt 1", "focus_id": 10}]
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    client.get("/projects/1/manage")
+
+    call_args = mock_templates.TemplateResponse.call_args
+    context = call_args[0][2]
+    assert context["project"]["name"] == "ACME"
+    assert len(context["focuses"]) == 1
+
+
+@patch("fp.db.get_project")
+def test_manage_page_redirects_when_project_not_found(mock_project):
+    """GET /projects/999/manage should redirect to /projects when project doesn't exist."""
+    mock_project.return_value = None
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    response = client.get("/projects/999/manage", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/projects"
+    mock_templates.TemplateResponse.assert_not_called()
+
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.get_project")
+def test_manage_page_enriches_focuses_with_prompts(mock_project, mock_focuses, mock_prompts):
+    """GET /projects/1/manage should attach prompts to each focus."""
+    mock_project.return_value = {"id": 1, "name": "ACME"}
+    mock_focuses.return_value = [
+        {"id": 10, "name": "Focus A"},
+        {"id": 11, "name": "Focus B"},
+    ]
+    mock_prompts.side_effect = lambda fid: (
+        [{"id": 100, "text": "P1"}, {"id": 101, "text": "P2"}] if fid == 10
+        else [{"id": 200, "text": "P3"}]
+    )
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    client.get("/projects/1/manage")
+
+    call_args = mock_templates.TemplateResponse.call_args
+    context = call_args[0][2]
+    focuses = context["focuses"]
+    assert focuses[0]["prompts"][0]["text"] == "P1"
+    assert focuses[0]["prompts"][1]["text"] == "P2"
+    assert focuses[1]["prompts"][0]["text"] == "P3"
+
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.get_project")
+def test_manage_page_route_registered(mock_project, mock_focuses, mock_prompts):
+    """GET /projects/1/manage should not return 405."""
+    mock_project.return_value = {"id": 1, "name": "ACME"}
+    mock_focuses.return_value = []
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    response = client.get("/projects/1/manage")
+    assert response.status_code != 405

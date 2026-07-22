@@ -177,6 +177,24 @@ async def projects_page(request: Request):
     )
 
 
+@router.get("/projects/{project_id}/manage", response_class=HTMLResponse)
+async def manage_page(request: Request, project_id: int):
+    """Project detail/manage page with focuses and prompts."""
+    from fp.db import get_project, get_focuses, get_prompts
+
+    templates = request.app.state.templates
+    project = get_project(project_id)
+    if not project:
+        return RedirectResponse(url="/projects", status_code=302)
+
+    focuses = get_focuses(project_id)
+    for f in focuses:
+        f["prompts"] = get_prompts(f["id"])
+
+    context = {"project": project, "focuses": focuses}
+    return templates.TemplateResponse(request, "manage.html", context)
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
     """Settings page."""

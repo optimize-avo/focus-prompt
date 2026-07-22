@@ -366,6 +366,16 @@ def get_web_data(project_id: int) -> dict | None:
         conn.close()
 
 
+def delete_web_data(project_id: int) -> None:
+    """Delete all web data for a project."""
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM web_data WHERE project_id = ?", (project_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # --- Step Selections ---
 
 
@@ -395,6 +405,16 @@ def get_step_selections(project_id: int, step: str) -> list[str]:
             (project_id, step),
         ).fetchone()
         return json.loads(row["selections"]) if row else []
+    finally:
+        conn.close()
+
+
+def delete_step_selections(project_id: int) -> None:
+    """Delete all step selections for a project."""
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM step_selections WHERE project_id = ?", (project_id,))
+        conn.commit()
     finally:
         conn.close()
 

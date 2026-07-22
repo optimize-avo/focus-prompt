@@ -1,5 +1,8 @@
 import sqlite3
 from pathlib import Path
+
+import pytest
+
 from fp.db import init_db, get_db, DB_PATH
 from fp.db import (
     create_project,
@@ -126,3 +129,74 @@ def test_active_project(tmp_path, monkeypatch):
 
     set_active_project(pid2)
     assert get_active_project_id() == pid2
+
+
+# --- Focus CRUD tests (Task 3) ---
+
+from fp.db import create_focus, get_focuses, update_focus, delete_focus
+
+
+def test_create_focus(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+
+    fid = create_focus(
+        project_id=pid,
+        name="Focus A",
+        description="Desc",
+        lens="problem",
+        priority="high",
+        signals='["sig1"]',
+        service_match_score=85.0,
+    )
+
+    assert fid > 0
+    focuses = get_focuses(pid)
+    assert len(focuses) == 1
+    assert focuses[0]["name"] == "Focus A"
+    assert focuses[0]["service_match_score"] == 85.0
+
+
+def test_get_focuses_empty(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Empty")
+
+    focuses = get_focuses(pid)
+    assert focuses == []
+
+
+def test_update_focus(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+    fid = create_focus(project_id=pid, name="Old")
+
+    update_focus(fid, name="New", priority="low")
+
+    focuses = get_focuses(pid)
+    assert focuses[0]["name"] == "New"
+    assert focuses[0]["priority"] == "low"
+
+
+def test_delete_focus(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+    fid = create_focus(project_id=pid, name="ToDelete")
+
+    delete_focus(fid)
+
+    assert get_focuses(pid) == []
+
+
+@pytest.mark.skip(reason="create_prompt/get_prompts not yet implemented (Task 4)")
+def test_delete_focus_cascades_to_prompts(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    from fp.db import create_prompt, get_prompts
+
+    pid = create_project(name="Test")
+    fid = create_focus(project_id=pid, name="Focus")
+    create_prompt(focus_id=fid, text="prompt1")
+    create_prompt(focus_id=fid, text="prompt2")
+
+    delete_focus(fid)
+
+    assert get_focuses(pid) == []

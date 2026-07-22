@@ -1,6 +1,7 @@
 """SQLite database layer for focus-prompt."""
 from __future__ import annotations
 
+import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -164,6 +165,69 @@ def delete_project(project_id: int) -> None:
     conn = get_db()
     try:
         conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def create_focus(
+    project_id: int,
+    name: str,
+    description: str = "",
+    lens: str = "problem",
+    priority: str = "medium",
+    signals: str = "[]",
+    service_match_score: float = 0.0,
+) -> int:
+    """Create a focus for a project and return its ID."""
+    signal_count = len(json.loads(signals)) if signals else 0
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            """INSERT INTO focuses (project_id, name, description, lens, priority, signals, signal_count, service_match_score)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (project_id, name, description, lens, priority, signals, signal_count, service_match_score),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_focuses(project_id: int) -> list[dict]:
+    """Get all focuses for a project."""
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM focuses WHERE project_id = ? ORDER BY id", (project_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def update_focus(focus_id: int, **fields) -> None:
+    """Update focus fields."""
+    if not fields:
+        return
+    if "signals" in fields:
+        signals = fields["signals"]
+        fields["signal_count"] = len(json.loads(signals)) if isinstance(signals, str) else len(signals)
+    set_clause = ", ".join(f"{k} = ?" for k in fields)
+    values = list(fields.values()) + [focus_id]
+    conn = get_db()
+    try:
+        conn.execute(f"UPDATE focuses SET {set_clause} WHERE id = ?", values)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_focus(focus_id: int) -> None:
+    """Delete a focus and all its prompts (cascade via FK)."""
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM focuses WHERE id = ?", (focus_id,))
         conn.commit()
     finally:
         conn.close()

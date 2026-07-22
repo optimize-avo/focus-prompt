@@ -137,11 +137,18 @@ def list_projects() -> list[dict]:
         conn.close()
 
 
+_PROJECT_FIELDS = {"name", "description", "website", "services", "competitors", "prompt_mode", "language"}
+
+
 def update_project(project_id: int, **fields) -> None:
     """Update project fields. Only provided fields are updated."""
     if not fields:
         return
-    fields["updated_at"] = _now()
+    # Only allow known columns to prevent SQL injection via column name
+    fields = {k: v for k, v in fields.items() if k in _PROJECT_FIELDS}
+    if not fields:
+        return
+    fields["updated_at"] = _now()  # Inject auto-timestamp (caller value ignored)
     set_clause = ", ".join(f"{k} = ?" for k in fields)
     values = list(fields.values()) + [project_id]
     conn = get_db()

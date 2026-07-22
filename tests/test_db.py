@@ -302,3 +302,100 @@ def test_delete_project_cascades_everything(tmp_path, monkeypatch):
     assert get_focuses(pid) == []
     assert get_web_data(pid) is None
     assert get_step_selections(pid, "research") == []
+
+
+# --- Conversion helper tests (Task 5) ---
+
+from fp.db import project_row_to_state, state_to_db
+from fp.models import (
+    Brand,
+    Focus,
+    PromptMode,
+    ProjectConfig,
+    ProjectState,
+    ScoredPrompt,
+    PromptIntent,
+)
+
+
+def test_project_row_to_state(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+
+    pid = create_project(
+        name="AVO",
+        description="AI Visibility",
+        website="https://getavo.ai",
+        services='["design"]',
+        competitors='["comp1"]',
+        prompt_mode="both",
+        language="en",
+    )
+    fid = create_focus(
+        project_id=pid,
+        name="Focus 1",
+        description="Desc",
+        signals='["sig1"]',
+        service_match_score=90.0,
+    )
+    create_prompt(
+        focus_id=fid,
+        text="How to track?",
+        intent="how-to",
+        mode="unbranded",
+        service_match=95.0,
+        mention_likelihood=70.0,
+        overall_score=80.0,
+    )
+
+    state = project_row_to_state(pid)
+
+    assert isinstance(state, ProjectState)
+    assert state.config.brand.name == "AVO"
+    assert state.config.prompt_mode == PromptMode.BOTH
+    assert len(state.focuses) == 1
+    assert state.focuses[0].name == "Focus 1"
+    assert len(state.focuses[0].prompts) == 1
+    assert state.focuses[0].prompts[0].text == "How to track?"
+
+
+def test_state_to_db(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+
+    brand = Brand(
+        name="Test Brand",
+        description="Desc",
+        website="https://test.com",
+        service_categories=["design"],
+        competitors=["comp1"],
+    )
+    config = ProjectConfig(
+        brand=brand,
+        prompt_mode=PromptMode.UNBRANDED,
+        language="id",
+    )
+    focus = Focus(
+        name="Focus 1",
+        description="A focus",
+        priority="high",
+        signals=["sig1"],
+        service_match_score=85.0,
+        prompts=[
+            ScoredPrompt(
+                text="Test prompt?",
+                intent=PromptIntent.HOWTO,
+                mode=PromptMode.UNBRANDED,
+                focus_name="Focus 1",
+                service_match=90.0,
+                mention_likelihood=70.0,
+                overall_score=80.0,
+            )
+        ],
+    )
+    state = ProjectState(config=config, focuses=[focus])
+
+    pid = state_to_db(state)
+
+    loaded = project_row_to_state(pid)
+    assert loaded.config.brand.name == "Test Brand"
+    assert len(loaded.focuses) == 1
+    assert loaded.focuses[0].prompts[0].text == "Test prompt?"

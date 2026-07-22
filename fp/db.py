@@ -397,3 +397,133 @@ def get_step_selections(project_id: int, step: str) -> list[str]:
         return json.loads(row["selections"]) if row else []
     finally:
         conn.close()
+
+
+# --- Model Conversion Helpers (Task 5) ---
+
+
+from fp.models import (
+    Brand,
+    Focus,
+    PromptIntent,
+    PromptMode,
+    ProjectConfig,
+    ProjectState,
+    ScoredPrompt,
+)
+
+
+def project_row_to_state(project_id: int) -> ProjectState:
+    """Load a full ProjectState from the database."""
+    project = get_project(project_id)
+    if not project:
+        raise ValueError(f"Project {project_id} not found")
+
+    brand = Brand(
+        name=project["name"],
+        description=project["description"],
+        website=project["website"],
+        service_categories=json.loads(project["services"]),
+        competitors=json.loads(project["competitors"]),
+    )
+    config = ProjectConfig(
+        brand=brand,
+        prompt_mode=PromptMode(project["prompt_mode"]),
+        language=project["language"],
+    )
+
+    db_focuses = get_focuses(project_id)
+    focuses = []
+    for f in db_focuses:
+        db_prompts = get_prompts(f["id"])
+        prompts = [
+            ScoredPrompt(
+                text=p["text"],
+                intent=PromptIntent(p["intent"]),
+                mode=PromptMode(p["mode"]),
+                focus_name=f["name"],
+                language=p["language"],
+                service_match=p["service_match"],
+                mention_likelihood=p["mention_likelihood"],
+                overall_score=p["overall_score"],
+                needs_review=bool(p["needs_review"]),
+            )
+            for p in db_prompts
+        ]
+        focuses.append(
+            Focus(
+                name=f["name"],
+                description=f["description"],
+                lens=f["lens"],
+                priority=f["priority"],
+                signals=json.loads(f["signals"]),
+                signal_count=f["signal_count"],
+                service_match_score=f["service_match_score"],
+                prompts=prompts,
+            )
+        )
+
+    web_data = get_web_data(project_id)
+    step_selections = {}
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT step, selections FROM step_selections WHERE project_id = ?",
+            (project_id,),
+        ).fetchall()
+        for r in rows:
+            step_selections[r["step"]] = json.loads(r["selections"])
+    finally:
+        conn.close()
+
+    return ProjectState(
+        config=config,
+        focuses=focuses,
+        web_data=web_data,
+        step_selections=step_selections,
+    )
+
+
+def state_to_db(state: ProjectState) -> int:
+    """Save a full ProjectState to the database. Returns project ID."""
+    brand = state.config.brand
+    pid = create_project(
+        name=brand.name,
+        description=brand.description,
+        website=brand.website,
+        services=json.dumps(brand.service_categories),
+        competitors=json.dumps(brand.competitors),
+        prompt_mode=state.config.prompt_mode.value,
+        language=state.config.language,
+    )
+
+    for focus in state.focuses:
+        fid = create_focus(
+            project_id=pid,
+            name=focus.name,
+            description=focus.description,
+            lens=focus.lens,
+            priority=focus.priority,
+            signals=json.dumps(focus.signals),
+            service_match_score=focus.service_match_score,
+        )
+        for prompt in focus.prompts:
+            create_prompt(
+                focus_id=fid,
+                text=prompt.text,
+                intent=prompt.intent.value,
+                mode=prompt.mode.value,
+                language=prompt.language,
+                service_match=prompt.service_match,
+                mention_likelihood=prompt.mention_likelihood,
+                overall_score=prompt.overall_score,
+                needs_review=int(prompt.needs_review),
+            )
+
+    if state.web_data:
+        save_web_data(pid, state.web_data)
+
+    for step, selections in state.step_selections.items():
+        save_step_selections(pid, step, selections)
+
+    return pid

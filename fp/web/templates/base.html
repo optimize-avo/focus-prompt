@@ -50,11 +50,21 @@
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
-        .progress-shine {
-            background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 50%, #3b82f6 100%);
-            background-size: 200% 100%;
-            animation: progress-shine 2s linear infinite;
+        /* Run progress widget (indeterminate shimmer + elapsed counter) */
+        .run-progress.hidden { display: none; }
+        .run-progress-fill {
+            transition: width 200ms ease-out;
         }
+        .run-progress.is-error {
+            border-color: rgb(245 158 11 / 0.6);
+            background-color: rgb(120 53 15 / 0.2);
+        }
+        .run-progress .run-progress-status.is-done { color: rgb(74 222 128); }
+        .run-progress .run-progress-status.is-error { color: rgb(251 191 36); }
+
+        /* Run button: hide label, keep spinner visible while request in flight */
+        .run-btn.htmx-request .run-label { display: none; }
+        .run-btn.htmx-request { cursor: wait; }
     </style>
     {% block head %}{% endblock %}
 </head>
@@ -81,5 +91,99 @@
     <main class="max-w-6xl mx-auto px-4 py-6">
         {% block content %}{% endblock %}
     </main>
+
+    <script>
+        // Disable run buttons while their HTMX request is in flight.
+        // Prevents double-submit and gives explicit visual feedback beyond the spinner.
+        (function () {
+            const PROGRESS_CAP_MS = 150000;     // 150s → 92% cap
+            const PROGRESS_MAX_PCT = 92;
+
+            function formatElapsed(ms) {
+                const total = Math.floor(ms / 1000);
+                const m = Math.floor(total / 60);
+                const s = total % 60;
+                return `${m}:${String(s).padStart(2, '0')}`;
+            }
+
+            function tick(progressEl, startedAt) {
+                const elapsed = Date.now() - startedAt;
+                const fill = progressEl.querySelector('.run-progress-fill');
+                const elapsedEl = progressEl.querySelector('.run-progress-elapsed');
+                const pct = Math.min(PROGRESS_MAX_PCT, (elapsed / PROGRESS_CAP_MS) * PROGRESS_MAX_PCT);
+                if (fill) fill.style.width = `${pct}%`;
+                if (elapsedEl) elapsedEl.textContent = formatElapsed(elapsed);
+            }
+
+            function findProgress(target) {
+                // The form is the request source; the partial is rendered next to (or inside) the form.
+                return target.querySelector('.run-progress[data-phase]')
+                    || document.querySelector('.run-progress[data-phase]');
+            }
+
+            document.body.addEventListener('htmx:beforeRequest', (e) => {
+                const btn = e.target.querySelector && e.target.querySelector('button.run-btn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.setAttribute('aria-busy', 'true');
+                }
+
+                const progressEl = findProgress(e.target);
+                if (!progressEl) return;
+                progressEl.classList.remove('hidden', 'is-error');
+                const statusEl = progressEl.querySelector('.run-progress-status');
+                if (statusEl) statusEl.classList.remove('is-done', 'is-error');
+
+                const startedAt = Date.now();
+                progressEl.dataset.startedAt = String(startedAt);
+                if (progressEl._tickInterval) clearInterval(progressEl._tickInterval);
+                progressEl._tickInterval = setInterval(() => tick(progressEl, startedAt), 250);
+                tick(progressEl, startedAt);
+            });
+
+            function finishProgress(progressEl, ok, label) {
+                if (!progressEl) return;
+                if (progressEl._tickInterval) {
+                    clearInterval(progressEl._tickInterval);
+                    progressEl._tickInterval = null;
+                }
+                const fill = progressEl.querySelector('.run-progress-fill');
+                const statusEl = progressEl.querySelector('.run-progress-status');
+                if (fill) {
+                    if (ok) {
+                        fill.style.width = '100%';
+                    }
+                }
+                if (statusEl) {
+                    statusEl.textContent = label;
+                    statusEl.classList.remove('is-done', 'is-error');
+                    statusEl.classList.add(ok ? 'is-done' : 'is-error');
+                }
+                if (!ok) progressEl.classList.add('is-error');
+                if (ok) {
+                    setTimeout(() => progressEl.classList.add('hidden'), 800);
+                }
+            }
+
+            document.body.addEventListener('htmx:afterRequest', (e) => {
+                const btn = e.target.querySelector && e.target.querySelector('button.run-btn');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.removeAttribute('aria-busy');
+                }
+                finishProgress(findProgress(e.target), e.detail.successful, e.detail.successful ? 'Done' : 'Error');
+            });
+
+            document.body.addEventListener('htmx:responseError', (e) => {
+                finishProgress(findProgress(e.target), false, 'Server error');
+            });
+            document.body.addEventListener('htmx:sendError', (e) => {
+                finishProgress(findProgress(e.target), false, 'Connection error');
+            });
+            document.body.addEventListener('htmx:timeout', (e) => {
+                finishProgress(findProgress(e.target), false, 'Timed out');
+            });
+        })();
+    </script>
 </body>
 </html>

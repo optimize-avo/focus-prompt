@@ -187,7 +187,6 @@ def test_delete_focus(tmp_path, monkeypatch):
     assert get_focuses(pid) == []
 
 
-@pytest.mark.skip(reason="create_prompt/get_prompts not yet implemented (Task 4)")
 def test_delete_focus_cascades_to_prompts(tmp_path, monkeypatch):
     _setup_db(tmp_path, monkeypatch)
     from fp.db import create_prompt, get_prompts
@@ -200,3 +199,106 @@ def test_delete_focus_cascades_to_prompts(tmp_path, monkeypatch):
     delete_focus(fid)
 
     assert get_focuses(pid) == []
+
+
+# --- Prompt CRUD + web_data + step_selections tests (Task 4) ---
+
+from fp.db import (
+    create_prompt,
+    get_prompts,
+    update_prompt,
+    delete_prompt,
+    save_web_data,
+    get_web_data,
+    save_step_selections,
+    get_step_selections,
+)
+
+
+def test_create_prompt(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+    fid = create_focus(project_id=pid, name="Focus")
+
+    prid = create_prompt(
+        focus_id=fid,
+        text="How to track AI visibility?",
+        intent="how-to",
+        mode="unbranded",
+        language="en",
+        service_match=90.0,
+        mention_likelihood=70.0,
+        overall_score=80.0,
+        needs_review=0,
+    )
+
+    assert prid > 0
+    prompts = get_prompts(fid)
+    assert len(prompts) == 1
+    assert prompts[0]["text"] == "How to track AI visibility?"
+    assert prompts[0]["service_match"] == 90.0
+
+
+def test_update_prompt(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+    fid = create_focus(project_id=pid, name="Focus")
+    prid = create_prompt(focus_id=fid, text="Old text")
+
+    update_prompt(prid, text="New text", overall_score=95.0)
+
+    prompts = get_prompts(fid)
+    assert prompts[0]["text"] == "New text"
+    assert prompts[0]["overall_score"] == 95.0
+
+
+def test_delete_prompt(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+    fid = create_focus(project_id=pid, name="Focus")
+    prid = create_prompt(focus_id=fid, text="ToDelete")
+
+    delete_prompt(prid)
+
+    assert get_prompts(fid) == []
+
+
+def test_save_get_web_data(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+
+    data = {"autocomplete": ["q1", "q2"], "stats": {"total_queries": 2}}
+    save_web_data(pid, data)
+
+    loaded = get_web_data(pid)
+    assert loaded["autocomplete"] == ["q1", "q2"]
+    assert loaded["stats"]["total_queries"] == 2
+
+
+def test_step_selections(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+    pid = create_project(name="Test")
+
+    save_step_selections(pid, "research", ["q1", "q2"])
+    save_step_selections(pid, "discover", ["f1"])
+
+    assert get_step_selections(pid, "research") == ["q1", "q2"]
+    assert get_step_selections(pid, "discover") == ["f1"]
+    assert get_step_selections(pid, "missing") == []
+
+
+def test_delete_project_cascades_everything(tmp_path, monkeypatch):
+    _setup_db(tmp_path, monkeypatch)
+
+    pid = create_project(name="Full")
+    fid = create_focus(project_id=pid, name="Focus")
+    create_prompt(focus_id=fid, text="Prompt")
+    save_web_data(pid, {"data": 1})
+    save_step_selections(pid, "research", ["q1"])
+
+    delete_project(pid)
+
+    assert get_project(pid) is None
+    assert get_focuses(pid) == []
+    assert get_web_data(pid) is None
+    assert get_step_selections(pid, "research") == []

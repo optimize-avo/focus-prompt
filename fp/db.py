@@ -261,3 +261,139 @@ def get_active_project_id() -> int | None:
         return int(row["value"]) if row else None
     finally:
         conn.close()
+
+
+# --- Prompt CRUD ---
+
+
+def create_prompt(
+    focus_id: int,
+    text: str,
+    intent: str = "info",
+    mode: str = "unbranded",
+    language: str = "id",
+    service_match: float = 0.0,
+    mention_likelihood: float = 0.0,
+    overall_score: float = 0.0,
+    needs_review: int = 0,
+) -> int:
+    """Create a prompt for a focus and return its ID."""
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            """INSERT INTO prompts (focus_id, text, intent, mode, language, service_match, mention_likelihood, overall_score, needs_review)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (focus_id, text, intent, mode, language, service_match, mention_likelihood, overall_score, needs_review),
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_prompts(focus_id: int) -> list[dict]:
+    """Get all prompts for a focus."""
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM prompts WHERE focus_id = ? ORDER BY id", (focus_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+_PROMPT_FIELDS = {"text", "intent", "mode", "language", "service_match", "mention_likelihood", "overall_score", "needs_review"}
+
+
+def update_prompt(prompt_id: int, **fields) -> None:
+    """Update prompt fields. Only provided fields are updated."""
+    if not fields:
+        return
+    # Only allow known columns to prevent SQL injection via column name
+    fields = {k: v for k, v in fields.items() if k in _PROMPT_FIELDS}
+    if not fields:
+        return
+    set_clause = ", ".join(f"{k} = ?" for k in fields)
+    values = list(fields.values()) + [prompt_id]
+    conn = get_db()
+    try:
+        conn.execute(f"UPDATE prompts SET {set_clause} WHERE id = ?", values)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_prompt(prompt_id: int) -> None:
+    """Delete a prompt."""
+    conn = get_db()
+    try:
+        conn.execute("DELETE FROM prompts WHERE id = ?", (prompt_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# --- Web Data ---
+
+
+def save_web_data(project_id: int, data: dict) -> None:
+    """Save web data for a project (upsert)."""
+    now = _now()
+    conn = get_db()
+    try:
+        conn.execute(
+            "DELETE FROM web_data WHERE project_id = ?", (project_id,)
+        )
+        conn.execute(
+            "INSERT INTO web_data (project_id, data, updated_at) VALUES (?, ?, ?)",
+            (project_id, json.dumps(data), now),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_web_data(project_id: int) -> dict | None:
+    """Get web data for a project, or None."""
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT data FROM web_data WHERE project_id = ?", (project_id,)
+        ).fetchone()
+        return json.loads(row["data"]) if row else None
+    finally:
+        conn.close()
+
+
+# --- Step Selections ---
+
+
+def save_step_selections(project_id: int, step: str, selections: list[str]) -> None:
+    """Save step selections (upsert)."""
+    conn = get_db()
+    try:
+        conn.execute(
+            "DELETE FROM step_selections WHERE project_id = ? AND step = ?",
+            (project_id, step),
+        )
+        conn.execute(
+            "INSERT INTO step_selections (project_id, step, selections) VALUES (?, ?, ?)",
+            (project_id, step, json.dumps(selections)),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_step_selections(project_id: int, step: str) -> list[str]:
+    """Get step selections, or empty list."""
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT selections FROM step_selections WHERE project_id = ? AND step = ?",
+            (project_id, step),
+        ).fetchone()
+        return json.loads(row["selections"]) if row else []
+    finally:
+        conn.close()

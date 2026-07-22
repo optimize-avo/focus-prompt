@@ -28,53 +28,41 @@ def _make_app():
 # ── GET / ──────────────────────────────────────────────────────────────
 
 @patch("fp.web.routes.pages.get_state")
-def test_index_returns_html_response(mock_get_state):
-    """GET / should return an HTML response using index.html template."""
+def test_index_redirects_to_projects(mock_get_state):
+    """GET / should redirect to /projects (302)."""
     mock_get_state.return_value = {"brand": "test"}
     app, mock_templates = _make_app()
     client = TestClient(app)
 
-    response = client.get("/")
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/projects"
+
+
+def test_index_redirect_follows_to_projects():
+    """GET / should follow redirect and land on /projects page."""
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    # Mock the projects route dependencies so it doesn't fail
+    with patch("fp.db.list_projects", return_value=[]), \
+         patch("fp.db.get_focuses", return_value=[]), \
+         patch("fp.db.get_prompts", return_value=[]), \
+         patch("fp.db.get_active_project_id", return_value=None):
+        response = client.get("/", follow_redirects=True)
 
     assert response.status_code == 200
-    mock_templates.TemplateResponse.assert_called_once()
-    call_args = mock_templates.TemplateResponse.call_args
-    # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert isinstance(call_args[0][0], Request)  # request object
-    assert call_args[0][1] == "index.html"
 
 
-@patch("fp.web.routes.pages.get_state")
-def test_index_passes_state_in_context(mock_get_state):
-    """GET / should pass state from get_state() in the template context."""
-    state_value = {"brand": "Acme Corp"}
-    mock_get_state.return_value = state_value
+def test_index_does_not_render_template():
+    """GET / should not call TemplateResponse (it's a redirect, not a page)."""
     app, mock_templates = _make_app()
     client = TestClient(app)
 
-    client.get("/")
+    client.get("/", follow_redirects=False)
 
-    call_args = mock_templates.TemplateResponse.call_args
-    # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    assert isinstance(call_args[0][0], Request)  # request object
-    assert call_args[0][1] == "index.html"
-    context = call_args[0][2]
-    assert context["state"] == state_value
-
-
-@patch("fp.web.routes.pages.get_state")
-def test_index_passes_none_state_when_no_project(mock_get_state):
-    """GET / should pass None state when no project file exists."""
-    mock_get_state.return_value = None
-    app, mock_templates = _make_app()
-    client = TestClient(app)
-
-    client.get("/")
-
-    call_args = mock_templates.TemplateResponse.call_args
-    # Starlette 1.3+ API: TemplateResponse(request, name, context)
-    context = call_args[0][2]
-    assert context["state"] is None
+    mock_templates.TemplateResponse.assert_not_called()
 
 
 # ── GET /init ─────────────────────────────────────────────────────────
@@ -392,19 +380,21 @@ def test_projects_passes_active_project_id(mock_active, mock_list, mock_focuses,
 @patch("fp.db.get_focuses")
 @patch("fp.db.list_projects")
 @patch("fp.db.get_active_project_id")
-@patch("fp.web.routes.pages.get_state")
 @patch("fp.web.routes.pages.get_config")
-def test_all_routes_registered(mock_get_config, mock_get_state, mock_active, mock_list, mock_focuses, mock_prompts):
-    """All 5 page routes should be registered and accessible."""
-    mock_get_state.return_value = None
+def test_all_routes_registered(mock_get_config, mock_active, mock_list, mock_focuses, mock_prompts):
+    """All page routes should be registered and accessible."""
     mock_get_config.return_value = {}
     mock_active.return_value = None
     mock_list.return_value = []
     app, mock_templates = _make_app()
     client = TestClient(app)
 
-    # All 5 page routes should respond (not 405 Method Not Allowed)
-    for path in ["/", "/init", "/pipeline", "/settings", "/projects"]:
+    # Page routes should respond (not 405 Method Not Allowed)
+    # / redirects to /projects (302), so check follow_redirects=False
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code != 405, "/ should be registered"
+
+    for path in ["/init", "/pipeline", "/settings", "/projects"]:
         response = client.get(path)
         assert response.status_code != 405, f"{path} should be registered"
 

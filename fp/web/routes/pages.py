@@ -40,14 +40,10 @@ def _migrate_json_if_needed():
 _migrate_json_if_needed()
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=RedirectResponse)
 async def index(request: Request):
-    """Dashboard — project status, quick actions."""
-    templates = request.app.state.templates
-    state = get_state()
-
-    context = {"state": state}
-    return templates.TemplateResponse(request, "index.html", context)
+    """Dashboard redirects to project list."""
+    return RedirectResponse(url="/projects", status_code=302)
 
 
 @router.get("/init", response_class=HTMLResponse)

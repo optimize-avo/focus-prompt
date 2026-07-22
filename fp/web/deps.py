@@ -9,6 +9,12 @@ from fp.config import load_user_config, get_current_config
 PROJECT_FILE = "fp-project.json"
 
 
+def get_db_path() -> Path:
+    """Return the database path (mirrors fp.db.DB_PATH)."""
+    from fp.db import DB_PATH
+    return DB_PATH
+
+
 def get_state() -> ProjectState | None:
     """Load project state from fp-project.json, or None if not found."""
     if not Path(PROJECT_FILE).exists():

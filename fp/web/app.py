@@ -27,10 +27,12 @@ def create_app() -> FastAPI:
     from fp.web.routes.pages import router as pages_router
     from fp.web.routes.pipeline import router as pipeline_router
     from fp.web.routes.settings import router as settings_router
+    from fp.web.routes.projects import router as projects_router
 
     app.include_router(pages_router)
     app.include_router(pipeline_router, prefix="/api")
     app.include_router(settings_router, prefix="/api")
+    app.include_router(projects_router, prefix="/api")
 
     return app
 

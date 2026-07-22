@@ -1,6 +1,8 @@
 """HTML page routes."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import APIRouter, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -9,6 +11,33 @@ from fp.research.autodetect import research_brand
 from fp.web.deps import get_state, get_config, save_state
 
 router = APIRouter()
+
+
+def _migrate_json_if_needed():
+    """Auto-import fp-project.json to SQLite on first run."""
+    from fp.db import init_db, get_active_project_id, state_to_db, set_active_project
+    from fp.models import ProjectState
+
+    init_db()
+
+    if get_active_project_id() is not None:
+        return  # Already migrated
+
+    json_path = Path("fp-project.json")
+    if not json_path.exists():
+        return  # Nothing to migrate
+
+    try:
+        state = ProjectState.load(json_path)
+        pid = state_to_db(state)
+        set_active_project(pid)
+        json_path.rename(json_path.with_suffix(".json.bak"))
+    except Exception:
+        pass  # If migration fails, user can create new project
+
+
+# Call on module load
+_migrate_json_if_needed()
 
 
 @router.get("/", response_class=HTMLResponse)

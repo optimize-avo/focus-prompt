@@ -203,23 +203,6 @@ def test_settings_passes_config_in_context(mock_get_config):
     assert context["config"] == config_value
 
 
-# ── Router integration ─────────────────────────────────────────────────
-
-@patch("fp.web.routes.pages.get_state")
-@patch("fp.web.routes.pages.get_config")
-def test_all_routes_registered(mock_get_config, mock_get_state):
-    """All 4 page routes should be registered and accessible."""
-    mock_get_state.return_value = None
-    mock_get_config.return_value = {}
-    app, mock_templates = _make_app()
-    client = TestClient(app)
-
-    # All 4 page routes should respond (not 405 Method Not Allowed)
-    for path in ["/", "/init", "/pipeline", "/settings"]:
-        response = client.get(path)
-        assert response.status_code != 405, f"{path} should be registered"
-
-
 # ── POST /init/research ──────────────────────────────────────────────
 
 @patch("fp.web.routes.pages.research_brand")
@@ -278,6 +261,122 @@ def test_init_research_handles_error_gracefully(mock_research):
 
 
 # ── Integration: auto-detect flow ─────────────────────────────────────
+
+# ── GET /projects ────────────────────────────────────────────────────
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.list_projects")
+def test_projects_returns_html_response(mock_list, mock_focuses, mock_prompts):
+    """GET /projects should return an HTML response using projects.html template."""
+    mock_list.return_value = []
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    response = client.get("/projects")
+
+    assert response.status_code == 200
+    mock_templates.TemplateResponse.assert_called_once()
+    call_args = mock_templates.TemplateResponse.call_args
+    assert isinstance(call_args[0][0], Request)
+    assert call_args[0][1] == "projects.html"
+
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.list_projects")
+def test_projects_passes_empty_projects_in_context(mock_list, mock_focuses, mock_prompts):
+    """GET /projects should pass empty projects list when no projects exist."""
+    mock_list.return_value = []
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    client.get("/projects")
+
+    call_args = mock_templates.TemplateResponse.call_args
+    context = call_args[0][2]
+    assert context["projects"] == []
+
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.list_projects")
+def test_projects_enriches_with_focus_and_prompt_counts(mock_list, mock_focuses, mock_prompts):
+    """GET /projects should enrich each project with focus_count and prompt_count."""
+    mock_list.return_value = [
+        {"id": 1, "name": "Brand A", "description": "Desc", "prompt_mode": "unbranded", "language": "en"},
+        {"id": 2, "name": "Brand B", "description": "", "prompt_mode": "branded", "language": "id"},
+    ]
+    # Project 1 has 2 focuses with 3 prompts total
+    mock_focuses.side_effect = lambda pid: (
+        [{"id": 10, "name": "f1"}, {"id": 11, "name": "f2"}] if pid == 1
+        else [{"id": 20, "name": "f3"}]
+    )
+    mock_prompts.side_effect = lambda fid: (
+        [{"id": 100}, {"id": 101}] if fid == 10
+        else [{"id": 102}] if fid == 11
+        else [{"id": 200}, {"id": 201}, {"id": 202}]
+    )
+
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    client.get("/projects")
+
+    call_args = mock_templates.TemplateResponse.call_args
+    context = call_args[0][2]
+    projects = context["projects"]
+
+    assert len(projects) == 2
+    assert projects[0]["focus_count"] == 2
+    assert projects[0]["prompt_count"] == 3
+    assert projects[1]["focus_count"] == 1
+    assert projects[1]["prompt_count"] == 3
+
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.list_projects")
+def test_projects_passes_project_metadata(mock_list, mock_focuses, mock_prompts):
+    """GET /projects should pass original project fields through."""
+    mock_list.return_value = [
+        {"id": 1, "name": "ACME", "description": "Enterprise", "prompt_mode": "both", "language": "id"},
+    ]
+    mock_focuses.return_value = []
+    mock_prompts.return_value = []
+
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    client.get("/projects")
+
+    call_args = mock_templates.TemplateResponse.call_args
+    context = call_args[0][2]
+    p = context["projects"][0]
+    assert p["name"] == "ACME"
+    assert p["description"] == "Enterprise"
+    assert p["prompt_mode"] == "both"
+    assert p["language"] == "id"
+
+
+# ── Router integration ─────────────────────────────────────────────────
+
+@patch("fp.web.routes.pages.get_state")
+@patch("fp.web.routes.pages.get_config")
+def test_all_routes_registered(mock_get_config, mock_get_state):
+    """All 4 page routes should be registered and accessible."""
+    mock_get_state.return_value = None
+    mock_get_config.return_value = {}
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    # All 4 page routes should respond (not 405 Method Not Allowed)
+    for path in ["/", "/init", "/pipeline", "/settings"]:
+        response = client.get(path)
+        assert response.status_code != 405, f"{path} should be registered"
+
+
+# ── POST /init/research ──────────────────────────────────────────────
 
 @patch("fp.web.routes.pages.research_brand")
 @patch("fp.web.routes.pages.save_state")

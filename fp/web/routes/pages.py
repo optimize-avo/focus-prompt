@@ -158,6 +158,22 @@ async def pipeline_step(request: Request, step: str):
     return templates.TemplateResponse(request, "pipeline.html", context)
 
 
+@router.get("/projects", response_class=HTMLResponse)
+async def projects_page(request: Request):
+    """Project list page."""
+    from fp.db import list_projects, get_focuses, get_prompts
+
+    templates = request.app.state.templates
+    projects = list_projects()
+    # Enrich with counts
+    for p in projects:
+        focuses = get_focuses(p["id"])
+        p["focus_count"] = len(focuses)
+        p["prompt_count"] = sum(len(get_prompts(f["id"])) for f in focuses)
+
+    return templates.TemplateResponse(request, "projects.html", {"projects": projects})
+
+
 @router.get("/settings", response_class=HTMLResponse)
 async def settings_page(request: Request):
     """Settings page."""

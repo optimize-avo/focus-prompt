@@ -285,9 +285,11 @@ def test_projects_returns_html_response(mock_list, mock_focuses, mock_prompts):
 @patch("fp.db.get_prompts")
 @patch("fp.db.get_focuses")
 @patch("fp.db.list_projects")
-def test_projects_passes_empty_projects_in_context(mock_list, mock_focuses, mock_prompts):
+@patch("fp.db.get_active_project_id")
+def test_projects_passes_empty_projects_in_context(mock_active, mock_list, mock_focuses, mock_prompts):
     """GET /projects should pass empty projects list when no projects exist."""
     mock_list.return_value = []
+    mock_active.return_value = None
     app, mock_templates = _make_app()
     client = TestClient(app)
 
@@ -296,6 +298,7 @@ def test_projects_passes_empty_projects_in_context(mock_list, mock_focuses, mock
     call_args = mock_templates.TemplateResponse.call_args
     context = call_args[0][2]
     assert context["projects"] == []
+    assert context["active_project_id"] is None
 
 
 @patch("fp.db.get_prompts")
@@ -359,19 +362,49 @@ def test_projects_passes_project_metadata(mock_list, mock_focuses, mock_prompts)
     assert p["language"] == "id"
 
 
-# ── Router integration ─────────────────────────────────────────────────
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.list_projects")
+@patch("fp.db.get_active_project_id")
+def test_projects_passes_active_project_id(mock_active, mock_list, mock_focuses, mock_prompts):
+    """GET /projects should pass the active project id to the template."""
+    mock_list.return_value = [
+        {"id": 1, "name": "A", "description": "", "prompt_mode": "unbranded", "language": "en"},
+        {"id": 2, "name": "B", "description": "", "prompt_mode": "unbranded", "language": "en"},
+    ]
+    mock_active.return_value = 2
+    mock_focuses.return_value = []
+    mock_prompts.return_value = []
 
-@patch("fp.web.routes.pages.get_state")
-@patch("fp.web.routes.pages.get_config")
-def test_all_routes_registered(mock_get_config, mock_get_state):
-    """All 4 page routes should be registered and accessible."""
-    mock_get_state.return_value = None
-    mock_get_config.return_value = {}
     app, mock_templates = _make_app()
     client = TestClient(app)
 
-    # All 4 page routes should respond (not 405 Method Not Allowed)
-    for path in ["/", "/init", "/pipeline", "/settings"]:
+    client.get("/projects")
+
+    call_args = mock_templates.TemplateResponse.call_args
+    context = call_args[0][2]
+    assert context["active_project_id"] == 2
+
+
+# ── Router integration ─────────────────────────────────────────────────
+
+@patch("fp.db.get_prompts")
+@patch("fp.db.get_focuses")
+@patch("fp.db.list_projects")
+@patch("fp.db.get_active_project_id")
+@patch("fp.web.routes.pages.get_state")
+@patch("fp.web.routes.pages.get_config")
+def test_all_routes_registered(mock_get_config, mock_get_state, mock_active, mock_list, mock_focuses, mock_prompts):
+    """All 5 page routes should be registered and accessible."""
+    mock_get_state.return_value = None
+    mock_get_config.return_value = {}
+    mock_active.return_value = None
+    mock_list.return_value = []
+    app, mock_templates = _make_app()
+    client = TestClient(app)
+
+    # All 5 page routes should respond (not 405 Method Not Allowed)
+    for path in ["/", "/init", "/pipeline", "/settings", "/projects"]:
         response = client.get(path)
         assert response.status_code != 405, f"{path} should be registered"
 

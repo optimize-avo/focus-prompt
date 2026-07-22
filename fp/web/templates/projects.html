@@ -16,7 +16,8 @@
     {% if projects %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for p in projects %}
-        <div class="bg-slate-800 rounded-xl border border-slate-700/50 p-5 hover:border-slate-600 transition-colors cursor-pointer group"
+        <div class="bg-slate-800 rounded-xl border p-5 transition-colors cursor-pointer group
+                    {% if p.id == active_project_id %}border-blue-500/70 ring-1 ring-blue-500/30{% else %}border-slate-700/50 hover:border-slate-600{% endif %}"
              onclick="window.location='/pipeline'">
             <div class="flex items-start justify-between mb-3">
                 <div class="flex items-center gap-3">
@@ -29,6 +30,7 @@
                     </div>
                 </div>
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {% if p.id != active_project_id %}
                     <button onclick="event.stopPropagation(); activateProject({{ p.id }})"
                             class="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white"
                             title="Set as active">
@@ -36,7 +38,15 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                     </button>
-                    <button onclick="event.stopPropagation(); deleteProject({{ p.id }}, '{{ p.name }}')"
+                    {% else %}
+                    <span class="p-1.5 text-blue-400" title="Active project">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </span>
+                    {% endif %}
+                    <button onclick="event.stopPropagation(); deleteProject({{ p.id }}, this.getAttribute('data-name'))"
+                            data-name="{{ p.name }}"
                             class="p-1.5 rounded hover:bg-red-500/20 text-slate-400 hover:text-red-400"
                             title="Delete">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

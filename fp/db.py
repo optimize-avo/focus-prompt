@@ -206,8 +206,15 @@ def get_focuses(project_id: int) -> list[dict]:
         conn.close()
 
 
+_FOCUS_FIELDS = {"name", "description", "lens", "priority", "signals", "signal_count", "service_match_score"}
+
+
 def update_focus(focus_id: int, **fields) -> None:
-    """Update focus fields."""
+    """Update focus fields. Only provided fields are updated."""
+    if not fields:
+        return
+    # Only allow known columns to prevent SQL injection via column name
+    fields = {k: v for k, v in fields.items() if k in _FOCUS_FIELDS}
     if not fields:
         return
     if "signals" in fields:

@@ -1,0 +1,23 @@
+{# Reusable indeterminate progress indicator. Expects 'phase_id' and 'phase_label' vars. #}
+<div id="{{ phase_id }}-progress"
+     class="run-progress hidden mt-3 rounded-lg border border-slate-700/50 bg-slate-800/60 p-3"
+     data-phase="{{ phase_id }}"
+     role="status"
+     aria-live="polite">
+  <div class="flex items-center justify-between text-xs mb-2">
+    <span class="run-progress-label flex items-center gap-2 text-slate-300">
+      <svg class="run-progress-spinner animate-spin h-3 w-3 text-blue-400"
+           fill="none" viewBox="0 0 24 24" aria-hidden="true">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+        </path>
+      </svg>
+      <span class="run-progress-status">{{ phase_label }}</span>
+    </span>
+    <span class="run-progress-elapsed font-mono text-slate-400">0:00</span>
+  </div>
+  <div class="h-2 bg-slate-900/80 rounded-full overflow-hidden">
+    <div class="run-progress-fill h-full progress-shine" style="width: 0%"></div>
+  </div>
+</div>
